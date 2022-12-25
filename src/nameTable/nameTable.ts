@@ -28,9 +28,13 @@ export class NameTable{
         return this.curFunctionAddress;
     }
 
-    public AddFunctionParameter(name:string){
+    public FunctionTypeBackPatch(type:Types){
+        this.table[this.curFunctionAddress].SetType = type;
+    }
+
+    public AddFunctionParameter(name:string,type:Types){
         const address = this.table.length;
-        this.table.push(new IdentFactor(name,null,IdentKind.PARAM,1,this.level,0,null));
+        this.table.push(new IdentFactor(name,type,IdentKind.PARAM,1,this.level,0,null));
         this.table[this.curFunctionAddress].incNumParams();
         return address;
     }
@@ -73,6 +77,19 @@ export class NameTable{
         this.table.length = _dis.address;
         this.localAddress = this.localAddress;
         this.level--;
+    }
+
+    public IsIdentTypeNull(name:string):boolean{
+        const ident = this.Exist(name);
+        return ident?.Type == null;
+    }
+
+    public SetType(name:string,type:Types){
+        const length = this.table.length;
+
+        for(let i = length-1;i>=0;i--){
+            if(this.table[i].Name == name) this.table[i].SetType = type;
+        }
     }
 
     public CheckIdentType(name:string,type:Types){

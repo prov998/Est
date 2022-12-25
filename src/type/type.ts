@@ -5,6 +5,7 @@ export enum Types{
     INT = "INT",
     FLOAT = "FLOAT",
     BOOL = "BOOL",
+    VOID = "VOID",
 }
 
 export function CastWithOpr(type1:Types,type2:Types,opr:TokenType):Types{
@@ -85,5 +86,7 @@ export function CastWithOpr(type1:Types,type2:Types,opr:TokenType):Types{
                 default:
                     throw new Error("")
             }
+        default:
+            return Types.VOID
     }
 }

@@ -42,5 +42,9 @@ export class IdentFactor{
     public set SetRelAddress(v : number) {
         this.relAddress = v;
     }
+
+    public set SetType(type:Types){
+        this.type = type;
+    }
     
 }
