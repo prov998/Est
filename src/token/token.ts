@@ -47,6 +47,14 @@ export function keyWord(name:string){
             return TokenType.FALSE
         case "while":
             return TokenType.WHILE
+        case "do":
+            return TokenType.DO
+        case "match":
+            return TokenType.MATCH
+        case "case":
+            return TokenType.CASE
+        case "other":
+            return TokenType.OTHER
         case "break":
             return TokenType.BREAK
         case "continue":

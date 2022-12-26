@@ -3,7 +3,7 @@ export enum TokenType{
     RET = "RET",
 
     IDENT = "IDENT",
-    FUNC_LEADER = ">>",
+    LEADER = ">>",
     END = "END",
 
     PRINT = "PRINT",
@@ -17,9 +17,14 @@ export enum TokenType{
     ELIF = "ELIF",
 
     WHILE = "WHILE",
+    DO = "DO",
 
     BREAK = "BREAK",
     CONTINUE = "CONTINUE",
+
+    MATCH = "MATCH",
+    CASE = "CASE",
+    OTHER = "OTHER",
 
     LPAREN = "(",
     RPAREN = ")",
@@ -29,6 +34,15 @@ export enum TokenType{
     MULTI = "*",
     DIV = "/",
     MOD = "%",
+
+    PLUSASSIGN = "+=",
+    MINUSASSIGN = "-=",
+    MULTIASSIGN = "*=",
+    DIVASSIGN = "/=",
+    MODASSIGN = "%=",
+
+    INC = "++",
+    DEC = "--",
 
     GRT = ">",
     LES = "<",

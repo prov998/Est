@@ -5,6 +5,10 @@ export enum InterOprKind{
     PUSHI = "PUSHI",//アドレスだけを取得
     ASS = "ASS",//opr1をopr2(address)に代入
 
+    COPY = "COPY",
+    INC = "INC",
+    DEC = "DEC",
+
     CALL = "CALL",
     RET = "RET",
 

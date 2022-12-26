@@ -9,15 +9,14 @@ import { VM } from "./virtualMachine/vm";
 test("check",()=>{
     let input = `
 
-    func add(x,y)>>
-        return x+y;
-    end
-
     func main>>
-        var x = add(2,3);
+        var x = 100;
+        
+        while x < 110 do
+            x++;
+        end
+
         println x;
-        x = 4;
-        print x;
     end
     `
     let lexer = new Lexer(input);

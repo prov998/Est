@@ -15,6 +15,7 @@ export class Parser{
     private isInCondition:boolean = false;
     private loop_continue_index:number[] = [];
     private loop_break_index:number[] = [];
+    private 
 
     private wasMainDecled:boolean = false;
 
@@ -123,6 +124,20 @@ export class Parser{
                     this.Next();
                     this.ParseWhileStatement();
                     continue;
+                case TokenType.INC:
+                    this.Next();
+                    this.PrefixInc();
+                    this.SemicolonCheck();
+                    continue;
+                case TokenType.DEC:
+                    this.Next();
+                    this.PrefixDec();
+                    this.SemicolonCheck();
+                    continue;
+                case TokenType.MATCH:
+                    this.Next();
+                    this.MatchStatement();
+                    continue;
                 default:
                     break;
             }
@@ -130,11 +145,124 @@ export class Parser{
         }
     }
 
+    private MatchStatement(){
+        var pre_jpc_index:number|null = null;
+        var jmp_indexes:number[] = [];
+        this.genCode.EmitBegin();
+        this.table.BeginBlock();
+        this.level++;
+        const main_type=this.ParseExpression();
+        if(this.CurToken().Type != TokenType.LEADER) this.PutError(TokenType.LEADER);
+        this.Next();
+
+        while(true){
+            if(this.CurToken().Type == TokenType.CASE){
+                if(pre_jpc_index != null) this.genCode.BackPatch1(pre_jpc_index,this.genCode.getIndex());
+                this.Next();
+                this.genCode.EmitCopy();
+                
+                const type = this.ParseExpression();
+                if(type != main_type) throw new Error("無効なパターンです");
+
+                if(this.CurToken().Type != TokenType.LEADER) this.PutError(TokenType.LEADER);
+                this.Next();
+
+                this.genCode.EmitEq();
+                pre_jpc_index = this.genCode.EmitJpc(0)
+
+                while(true){
+                    this.ParseStatement();
+
+                    if(this.CurToken().Type == TokenType.CASE||
+                        this.CurToken().Type == TokenType.OTHER||
+                        this.CurToken().Type == TokenType.END) break;
+
+                    this.Next();
+                }
+
+                jmp_indexes.push(this.genCode.EmitJmp(0));
+                this.table.EndBlock();
+                this.table.BeginBlock();
+                continue;
+            }
+            if(this.CurToken().Type == TokenType.OTHER){
+                if(pre_jpc_index != null) this.genCode.BackPatch1(pre_jpc_index,this.genCode.getIndex());
+                this.Next();
+
+                while(true){
+                    this.ParseStatement();
+
+                    if(this.CurToken().Type == TokenType.END) break;
+                    this.Next();
+                }
+                this.table.EndBlock();
+                this.table.BeginBlock();
+                break;
+            }else{
+                if(pre_jpc_index != null) this.genCode.BackPatch1(pre_jpc_index,this.genCode.getIndex())
+            }
+            break;
+        }
+        if(this.CurToken().Type != TokenType.END) this.PutError(TokenType.END);
+        this.Next();
+
+        if(jmp_indexes.length != 0)
+        jmp_indexes.forEach(index=>this.genCode.BackPatch1(index,this.genCode.getIndex()));
+
+        this.genCode.EmitEnd();
+        this.table.EndBlock();
+        this.level--;
+    }
+
     private BreakStatement(){
         if(this.loop_continue_index.length == 0) throw new Error("Not in loop");
         this.loop_break_index.push(this.genCode.EmitJmp(0));
         if(!this.CheckToken(TokenType.SEMICOLON)) this.PutError(TokenType.SEMICOLON);
         this.Next();
+    }
+
+    private PrefixInc():Types{
+        const name = this.CurToken().Name;
+        this.Next();
+        const _ident_in_table = this.table.Exist(name);
+
+        switch(_ident_in_table?.IdentKind){
+            case IdentKind.VAR:
+                this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                this.genCode.EmitInc();
+                this.genCode.EmitCopy();
+                this.genCode.EmitPushi(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                this.genCode.EmitAss();
+                break;
+            default:
+                throw new Error("インクリメントできません");
+        }
+        if(_ident_in_table.Type == null) throw new Error("null ErROR");
+
+        return _ident_in_table.Type
+    }
+
+    private PrefixDec():Types{
+        const name = this.CurToken().Name;
+        this.Next();
+        this.SemicolonCheck();
+        const _ident_in_table = this.table.Exist(name);
+
+        switch(_ident_in_table?.IdentKind){
+            case IdentKind.VAR:
+                this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                this.genCode.EmitDec();
+                this.genCode.EmitCopy();
+                this.genCode.EmitPushi(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                this.genCode.EmitAss();
+                break;
+            default:
+                throw new Error("インクリメントできません");
+        }
+
+        if(_ident_in_table.Type == null) throw new Error("null ErROR");
+
+        return _ident_in_table.Type
     }
 
     private ContinueStatement(){
@@ -151,9 +279,9 @@ export class Parser{
         this.level++;
         this.genCode.EmitBegin();
         let return_jmp_index = this.genCode.getIndex();
-        this.loop_continue_index.push(return_jmp_index)
-        this.ParseCondition();
-        if(this.CurToken().Type != TokenType.THEN) this.PutError(TokenType.THEN);
+        this.loop_continue_index.push(return_jmp_index);
+        this.ParseCondition(true);
+        if(this.CurToken().Type != TokenType.DO) this.PutError(TokenType.DO);
         this.Next();
 
         this.table.BeginBlock();
@@ -196,7 +324,7 @@ export class Parser{
         let jmp_indexes:number[] = [];
         this.level++;
         this.genCode.EmitBegin();
-        this.ParseCondition();
+        this.ParseCondition(false);
         if(this.CurToken().Type != TokenType.THEN) this.PutError(TokenType.THEN);
         this.Next();
     
@@ -219,7 +347,7 @@ export class Parser{
                 this.Next()
                 jmp_indexes.push(this.genCode.EmitJmp(0));
                 this.genCode.BackPatch1(last_jpc_index,this.genCode.getIndex());
-                this.ParseCondition();
+                this.ParseCondition(false);
                 if(this.CurToken().Type != TokenType.THEN) this.PutError(TokenType.THEN);
                 this.Next();
 
@@ -290,11 +418,16 @@ export class Parser{
         }
     }
 
-    private ParseCondition(){
+    private ParseCondition(isLoop:Boolean){
         this.isInCondition = true;
         this.ParseExpression();
         let _cur = this.CurToken();
-        if(_cur.Type == TokenType.THEN) return;
+        if(isLoop){
+            if(this.CurToken().Type == TokenType.DO) return;
+        }else{
+            if(this.CurToken().Type == TokenType.THEN) return;
+            else if(this.CurToken().Type == TokenType.DO) throw new Error("Need then")
+        }
         this.Next();
         this.ParseExpression();
         this.isInCondition = false;
@@ -344,7 +477,7 @@ export class Parser{
             case TokenType.BOOL:
                 return Types.BOOL
             default:
-                throw new Error("型を入力してください");
+                throw new Error("Type is unknown");
         }
     }
 
@@ -531,7 +664,7 @@ export class Parser{
         return new_type
     }
 
-    private ParseFactor(){
+    private ParseFactor():Types{
         switch(this.CurToken().Type){
             case TokenType.INT_NUMBER:
                 const int_num_text = this.CurToken().Value;
@@ -547,10 +680,11 @@ export class Parser{
                 return Types.FLOAT;
             case TokenType.LPAREN:
                 this.Next();
-                this.ParseExpression();
+                const type = this.ParseExpression();
                 if(this.CurToken().Type != TokenType.RPAREN) throw new Error(")が必要");
                 this.Next();
-                return Types.BOOL;
+                console.log(type)
+                return type;
             case TokenType.TRUE:
                 this.Next();
                 this.genCode.EmitTrue();
@@ -564,27 +698,72 @@ export class Parser{
                 this.Next();
 
                 const _ident_in_table = this.table.Exist(name);
+                if(this.CurToken().Type == TokenType.INC){
+                    this.Next();
+                    if(_ident_in_table != undefined)
+                    this.PostfixInc(_ident_in_table);
+
+                    if(_ident_in_table?.Type == null) throw new Error("");
+                    return _ident_in_table?.Type;
+                }
+
+                if(this.CurToken().Type == TokenType.INC){
+                    this.Next();
+                    if(_ident_in_table != undefined)
+                    this.PostfixDec(_ident_in_table);
+                    if(_ident_in_table?.Type == null) throw new Error("");
+                    return _ident_in_table?.Type;
+                }
 
                 switch(_ident_in_table?.IdentKind){
                     case IdentKind.PARAM:
                         this.ParseFuncParams(_ident_in_table);
+                        if(_ident_in_table?.Type == null) throw new Error("");
                         return _ident_in_table.Type;
                     case IdentKind.FUNC:
                         const index = _ident_in_table.RelAddress;
                         this.ParseFuncCall(index);
+                        if(_ident_in_table?.Type == null) throw new Error("");
                         return _ident_in_table.Type
                     case IdentKind.VAR:
                     case IdentKind.CONST:
                         this.genCode.EmitLoad(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                        if(_ident_in_table?.Type == null) throw new Error("");
                         return _ident_in_table.Type;
                     default:
-                        console.log(this.CurToken())
                         throw new Error("不明な識別子");
                 }
+            case TokenType.INC:
+                this.Next();
+                const type_inc:Types = this.PrefixInc();
+
+                if(type_inc == undefined) throw new Error("")
+                return type_inc;
+            case TokenType.DEC:
+                this.Next();
+                const type_dec:Types = this.PrefixDec();
+
+                return type_dec;
 
             default:
                 throw new Error(`Unknown factor ${this.CurToken().Type}`); 
         }
+    }
+
+    private PostfixInc(_ident_in_table:IdentFactor){
+        this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+        this.genCode.EmitCopy();
+        this.genCode.EmitInc();
+        this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+        this.genCode.EmitAss();
+    }
+
+    private PostfixDec(_ident_in_table:IdentFactor){
+        this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+        this.genCode.EmitCopy();
+        this.genCode.EmitDec();
+        this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+        this.genCode.EmitAss();
     }
 
     private ParseIdent(){
@@ -596,6 +775,7 @@ export class Parser{
         switch(_ident_in_table?.IdentKind){
             case IdentKind.FUNC:
                 const index = _ident_in_table.RelAddress
+                this.ParseFuncCall(index);
                 break;
             case IdentKind.PARAM:
                 this.Next();
@@ -611,10 +791,81 @@ export class Parser{
                     }
                     this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
                     this.genCode.EmitAss();
+                }else if(this.CurToken().Type == TokenType.PLUSASSIGN){
+                    this.Next();
+                    this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    const type= this.ParseExpression();
+                    if(this.table.IsIdentTypeNull(name)){
+                        this.table.SetType(name,type);
+                    }else{
+                        this.table.CheckIdentType(_ident_in_table.Name,type);
+                    }
+                    this.genCode.EmitAdd();
+                    this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                    this.genCode.EmitAss();
+                }else if(this.CurToken().Type == TokenType.MINUSASSIGN){
+                    this.Next();
+                    this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    const type= this.ParseExpression();
+                    if(this.table.IsIdentTypeNull(name)){
+                        this.table.SetType(name,type);
+                    }else{
+                        this.table.CheckIdentType(_ident_in_table.Name,type);
+                    }
+                    this.genCode.EmitSub();
+                    this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                    this.genCode.EmitAss();
+                }else if(this.CurToken().Type == TokenType.MULTIASSIGN){
+                    this.Next();
+                    this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    const type= this.ParseExpression();
+                    if(this.table.IsIdentTypeNull(name)){
+                        this.table.SetType(name,type);
+                    }else{
+                        this.table.CheckIdentType(_ident_in_table.Name,type);
+                    }
+                    this.genCode.EmitMul();
+                    this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                    this.genCode.EmitAss();
+                }else if(this.CurToken().Type == TokenType.DIVASSIGN){
+                    this.Next();
+                    this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    const type= this.ParseExpression();
+                    if(this.table.IsIdentTypeNull(name)){
+                        this.table.SetType(name,type);
+                    }else{
+                        this.table.CheckIdentType(_ident_in_table.Name,type);
+                    }
+                    this.genCode.EmitDiv();
+                    this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                    this.genCode.EmitAss();
+                }else if(this.CurToken().Type == TokenType.MODASSIGN){
+                    this.Next();
+                    this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    const type= this.ParseExpression();
+                    if(this.table.IsIdentTypeNull(name)){
+                        this.table.SetType(name,type);
+                    }else{
+                        this.table.CheckIdentType(_ident_in_table.Name,type);
+                    }
+                    this.genCode.EmitMod();
+                    this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                    this.genCode.EmitAss();
+                }else if(this.CurToken().Type == TokenType.INC){
+                    this.Next();
+                    if(_ident_in_table != undefined)
+                    this.PostfixInc(_ident_in_table);
+                }else if(this.CurToken().Type == TokenType.DEC){
+                    this.Next();
+                    if(_ident_in_table != undefined)
+                    this.PostfixDec(_ident_in_table);
+                }else{
+                    this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
                 }
                 break;
             case IdentKind.CONST:
-                throw new Error("CONST IS NOT MUTABLE");
+                this.Next();
+                if(this.CurToken().Type == TokenType.ASSIGN) throw new Error("CONST IS NOT MUTABLE");
         }
     }
 
@@ -676,7 +927,7 @@ export class Parser{
                 }
             }
             if(this.CurToken().Type == TokenType.RPAREN) this.Next();
-            if(this.CurToken().Type == TokenType.FUNC_LEADER){
+            if(this.CurToken().Type == TokenType.LEADER){
                 this.Next();
                 try{
                     func_return_type = this.ParseType();
@@ -687,7 +938,7 @@ export class Parser{
                 this.table.FunctionTypeBackPatch(func_return_type);
                 break;
             }
-            this.PutError(TokenType.FUNC_LEADER);
+            this.PutError(TokenType.LEADER);
             break;
         }
 
@@ -704,6 +955,7 @@ export class Parser{
                 this.Next();
                 break;
             }
+            this.Next();
         }
 
         if(func_return_type != Types.VOID && !wasReturned) throw new Error("returnが必要です");
@@ -717,7 +969,6 @@ export class Parser{
 
     private ParseReturn(numParams:number,return_type:Types){
         const type = this.ParseExpression();
-        console.log(type)
         if(type != return_type) throw new Error("Type Error!");
         this.genCode.EmitReturn(numParams,this.table.Level,numParams);
         if(this.CurToken().Type != TokenType.SEMICOLON){

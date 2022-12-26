@@ -31,6 +31,15 @@ export class VM{
         while(true){
             let code = this.codes[this.pc++];
             switch(code.Kind){
+                case InterOprKind.COPY:
+                    this.runCopy();
+                    break;
+                case InterOprKind.INC:
+                    this.runInc();
+                    break;
+                case InterOprKind.DEC:
+                    this.runDec();
+                    break;
                 case InterOprKind.BEGIN:
                     this.runBegin();
                     break;
@@ -124,10 +133,30 @@ export class VM{
                     console.log(code)
                     throw new Error("不明な指示です");
             }
-
             if(this.pc >= this.codes.length) break;
             if(this.pc == 0) break;
         }
+    }
+
+    private runCopy(){
+        const value = this.runPopNoOpr();
+
+        this.runPush(value);
+        this.runPush(value);
+    }
+
+    private runInc(){
+        const value = this.runPopNoOpr();
+
+        if(typeof value == "number")
+        this.runPush(value+1);
+    }
+
+    private runDec(){
+        const value = this.runPopNoOpr();
+
+        if(typeof value == "number")
+        this.runPush(value-1);
     }
 
     private runBegin(){
@@ -150,8 +179,6 @@ export class VM{
     }
 
     private runJmp(index:number){
-        console.log(this.dymem,"!!!")
-        console.log(this.bp,"???")
         this.pc = index;
     }
 
@@ -171,7 +198,6 @@ export class VM{
     private runAss(){
         const _address = this.runPopNoOpr();
         const _value = this.runPopNoOpr();
-
         const before_bp = this.bp;
         if(typeof _address == "number"&& typeof _value == "number") this.dymem[_address] = _value;
         if(before_bp != this.dymem.length) this.dp = this.dymem.length-1;
@@ -360,7 +386,6 @@ export class VM{
         const rs = this.runPopNoOpr();
         const ls = this.runPopNoOpr();
 
-        console.log(ls,rs);
         const value = ls < rs ?1:0;
         this.runPush(value)
     }

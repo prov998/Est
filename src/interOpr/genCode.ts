@@ -19,6 +19,18 @@ export class GenCode{
         return this.Emit(new InterOpr(InterOprKind.START,1,null,-1,0));
     }
 
+    public EmitCopy(){
+        return this.Emit(new InterOpr(InterOprKind.COPY,null,null,0,0));
+    }
+
+    public EmitInc(){
+        return this.Emit(new InterOpr(InterOprKind.INC,null,null,0,0));
+    }
+
+    public EmitDec(){
+        return this.Emit(new InterOpr(InterOprKind.DEC,null,null,0,0));
+    }
+
     public EmitLoad(level:number,address:number){
         return this.Emit(new InterOpr(InterOprKind.LOAD,level,address,0,0));
     }
@@ -132,6 +144,8 @@ export class GenCode{
     }
 
     public BackPatch1(index:number,newIndex:number){
+        console.log("S",index,newIndex)
+        console.log(this.codes[newIndex])
         this.codes[index].setOpr1(newIndex);
     }
 

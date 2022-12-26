@@ -47,6 +47,7 @@ export class Lexer{
                     }else{
                         throw new Error("Need '='");
                     }
+                    break;
                 case ".":
                     token = new Token(TokenType.DOT,".","");
                     break;
@@ -69,13 +70,34 @@ export class Lexer{
                     token = new Token(TokenType.EOF,"","");
                     break;
                 case "+":
-                    token = new Token(TokenType.PLUS,"","");
+                    if(this.peekChar() == "="){
+                        this.Next();
+                        token = new Token(TokenType.PLUSASSIGN,"+=","");
+                    }else if(this.peekChar() == "+"){
+                        this.Next();
+                        token = new Token(TokenType.INC,"++","");
+                    }else{
+                        token = new Token(TokenType.PLUS,"+","");
+                    }
                     break;
                 case "-":
-                    token = new Token(TokenType.MINUS,"","");
+                    if(this.peekChar() == "="){
+                        this.Next();
+                        token = new Token(TokenType.MINUSASSIGN,"-=","");
+                    }else if(this.peekChar() == "-"){
+                        this.Next();
+                        token = new Token(TokenType.DEC,"--","");
+                    }else{
+                        token = new Token(TokenType.MINUS,"-","");
+                    }
                     break;
                 case "*":
-                    token = new Token(TokenType.MULTI,"","");
+                    if(this.peekChar() == "="){
+                        this.Next();
+                        token = new Token(TokenType.MULTIASSIGN,"*=","");
+                    }else{
+                        token = new Token(TokenType.MULTI,"*","");
+                    }
                     break;
                 case "/":
                     if(this.peekChar() == "/"){
@@ -83,15 +105,25 @@ export class Lexer{
                         this.Next();
                         this.LexComment();
                         continue;
-                    }else token = new Token(TokenType.DIV,"","");
+                    }else if(this.peekChar() == "="){
+                        this.Next();
+                        token = new Token(TokenType.DIVASSIGN,"/=","");
+                    }else{
+                        token = new Token(TokenType.DIV,"","");
+                    }
                     break;
                 case "%":
-                    token = new Token(TokenType.MOD,"","");
+                    if(this.peekChar() == "="){
+                        this.Next();
+                        token = new Token(TokenType.MODASSIGN,"%=","");
+                    }else{
+                        token = new Token(TokenType.MOD,"%","");
+                    }
                     break;
                 case ">":
                     if(this.peekChar() == ">"){
                         this.Next();
-                        token = new Token(TokenType.FUNC_LEADER,"","");
+                        token = new Token(TokenType.LEADER,"","");
                     }else if(this.peekChar() == "="){
                         this.Next();
                         token = new Token(TokenType.EGR,"","");
