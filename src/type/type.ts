@@ -6,6 +6,10 @@ export enum Types{
     FLOAT = "FLOAT",
     BOOL = "BOOL",
     VOID = "VOID",
+    CHAR = "CHAR",
+    INT_ARRANGE = "INT[]",
+    FLOAT_ARRANGE = "FLOAT[]",
+    CHAR_ARRANGE = "CHAR[]",
 }
 
 export function CastWithOpr(type1:Types,type2:Types,opr:TokenType):Types{
@@ -40,6 +44,8 @@ export function CastWithOpr(type1:Types,type2:Types,opr:TokenType):Types{
                     }
                 case Types.BOOL:
                     _ERROR_TYPE_CALC(Types.INT,Types.BOOL);
+                case Types.CHAR:
+                    _ERROR_TYPE_CALC(Types.INT,Types.CHAR);
                 default:
                     throw new Error("")
             }
@@ -73,6 +79,8 @@ export function CastWithOpr(type1:Types,type2:Types,opr:TokenType):Types{
                     }
                 case Types.BOOL:
                     _ERROR_TYPE_CALC(Types.FLOAT,Types.BOOL);
+                case Types.CHAR:
+                    _ERROR_TYPE_CALC(Types.CHAR,Types.CHAR);
                 default:
                     throw new Error("")
             }
@@ -82,7 +90,35 @@ export function CastWithOpr(type1:Types,type2:Types,opr:TokenType):Types{
                     _ERROR_TYPE_CALC(Types.BOOL,Types.INT);
                 case Types.FLOAT:
                     _ERROR_TYPE_CALC(Types.BOOL,Types.FLOAT);
+                case Types.CHAR:
+                    _ERROR_TYPE_CALC(Types.BOOL,Types.CHAR);
                 case Types.BOOL:
+                default:
+                    throw new Error("")
+            }
+        case Types.CHAR:
+            switch(type2){
+                case Types.INT:
+                    _ERROR_TYPE_CALC(Types.CHAR,Types.INT);
+                case Types.FLOAT:
+                    _ERROR_TYPE_CALC(Types.FLOAT,Types.FLOAT);
+                case Types.CHAR:
+                    _ERROR_TYPE_CALC(Types.CHAR,Types.CHAR);
+                case Types.BOOL:
+                    _ERROR_TYPE_CALC(Types.CHAR,Types.BOOL);
+                default:
+                    throw new Error("")
+            }
+        case Types.VOID:
+            switch(type2){
+                case Types.INT:
+                    return Types.INT
+                case Types.FLOAT:
+                    return Types.FLOAT
+                case Types.CHAR:
+                    return Types.CHAR
+                case Types.BOOL:
+                    return Types.BOOL
                 default:
                     throw new Error("")
             }

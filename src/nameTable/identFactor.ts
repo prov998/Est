@@ -46,5 +46,9 @@ export class IdentFactor{
     public set SetType(type:Types){
         this.type = type;
     }
+
+    public set SetSize(size:number){
+        this.size = size;
+    }
     
 }

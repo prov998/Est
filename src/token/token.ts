@@ -65,6 +65,8 @@ export function keyWord(name:string){
             return TokenType.FLOAT
         case "bool":
             return TokenType.BOOL
+        case "char":
+            return TokenType.CHAR
         default:
             return null
     }

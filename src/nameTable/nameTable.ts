@@ -49,6 +49,16 @@ export class NameTable{
         return numParams
     }
 
+    public SetSizeArray(new_size:number,name:string){
+        const length = this.table.length;
+
+        for(let i = length-1;i>=0;i--){
+            if(this.table[i].Name == name) this.table[i].SetSize = new_size;
+        }
+
+        this.localAddress += new_size-1;
+    }
+
     public EndFunction(){
         const _dis= this.display.pop();
         if(_dis == undefined) throw new Error("");
@@ -57,12 +67,14 @@ export class NameTable{
         this.level--;
     }
 
-    public RegisterVar(name:string,type:Types|null){
-        this.table.push(new IdentFactor(name,type,IdentKind.VAR,1,this.level,this.localAddress++,null));
+    public RegisterVar(name:string,type:Types|null,size:number){
+        this.table.push(new IdentFactor(name,type,IdentKind.VAR,size,this.level,this.localAddress,null));
+        this.localAddress += size
     }
 
-    public RegisterConst(name:string,type:Types|null){
-        this.table.push(new IdentFactor(name,type,IdentKind.CONST,1,this.level,this.localAddress++,null));
+    public RegisterConst(name:string,type:Types|null,size:number){
+        this.table.push(new IdentFactor(name,type,IdentKind.CONST,size,this.level,this.localAddress,null));
+        this.localAddress += size
     }
 
     public BeginBlock(){

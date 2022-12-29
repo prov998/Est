@@ -35,6 +35,10 @@ export class GenCode{
         return this.Emit(new InterOpr(InterOprKind.LOAD,level,address,0,0));
     }
 
+    public EmitLdst(){
+        return this.Emit(new InterOpr(InterOprKind.LDST,null,null,0,0));
+    }
+
     public EmitPushi(level:number,address:number){
         return this.Emit(new InterOpr(InterOprKind.PUSHI,level,address,0,0));
     }
@@ -43,7 +47,7 @@ export class GenCode{
         return this.Emit(new InterOpr(InterOprKind.ASS,null,null,0,0));
     }
 
-    public EmitPush(value:number){
+    public EmitPush(value:number|string){
         return this.Emit(new InterOpr(InterOprKind.PUSH,value,null,0,0));
     }
 

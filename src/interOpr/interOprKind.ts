@@ -4,6 +4,7 @@ export enum InterOprKind{
     LOAD = "LOAD",//opr1 and opr2 から計算したアドレスの値を取得
     PUSHI = "PUSHI",//アドレスだけを取得
     ASS = "ASS",//opr1をopr2(address)に代入
+    LDST = "LDST",//stackの先頭の値をアドレスとして、そのアドレスの値を取得
 
     COPY = "COPY",
     INC = "INC",

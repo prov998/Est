@@ -6,13 +6,11 @@ import { VM } from "../virtualMachine/vm";
 
 export let run = ()=>{
     let input = `
-        func fn(x:int)>>
-            println x;
-            fn(x);
-        end
 
-        func main()>>
-            println 4;
+        func main>>
+            var x:int[10];
+
+            x[0] = 4;
         end
     `
     let lexer = new Lexer(input);
@@ -48,7 +46,7 @@ export let run = ()=>{
 
     console.log("STACK:",vm.Stack);
     console.log("DYMEM:",vm.Dymem);
-    console.log("OUTPUT:",vm.Output);  
+    console.log("OUTPUT:",vm.Output);    
 }
 
 run();

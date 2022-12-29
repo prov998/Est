@@ -1,4 +1,4 @@
-import { keyWord, Token } from "../token/token";
+import { keyWord, Token} from "../token/token";
 import { TokenType } from "../token/tokenType";
 
 export class Lexer{
@@ -32,6 +32,24 @@ export class Lexer{
         while(true){
             this.skipWhiteSpace();
             switch(this.ch){
+                case "[":
+                    token = new Token(TokenType.LARRAY,"[","");
+                    break;
+                case "]":
+                    token = new Token(TokenType.RARRAY,"]","");
+                    break;
+                case "'":
+                    this.Next();
+                    if(this.isIdentifier(this.ch)|| this.isWhiteSpace(this.ch)){
+                        let char = this.ch;
+                        token = new Token(TokenType.CHAR,"",char);
+                        this.Next();
+                    }else{
+                        token = new Token(TokenType.CHAR,"","");
+                    }
+                    if(this.ch != "'") throw new Error("'がありません！");
+                    //this.Next();
+                    break;
                 case "=":
                     if(this.peekChar() == "="){
                         this.Next();
@@ -151,7 +169,7 @@ export class Lexer{
                         return token
                     }
                     if(this.isIdentifier(this.ch)){
-                        let name = this.LexIdentifier();
+                    let name = this.LexIdentifier();
                         let type = keyWord(name);
                         if(type != null){
                             token = new Token(type,name,"");
@@ -160,7 +178,7 @@ export class Lexer{
 
                         token = new Token(TokenType.IDENT,name,"");
                         return token;
-                    }
+                        }  
                     token = new Token(TokenType.ILLEGAL,this.ch,"");
             }
             break;

@@ -5,7 +5,7 @@ export class VM{
     private codes:InterOpr[];
     private pc:number; //program counter
     private stack:number[]|string[];
-    private dymem:number[];
+    private dymem:number[]|string[];
     private stackTop:number;
     private bp:number; //block pointer
     private dp:number; //dymemの先頭のアドレス
@@ -24,7 +24,7 @@ export class VM{
     }
 
     public get Stack():number[]|string[]{return this.stack;}
-    public get Dymem():number[]{return this.dymem;}
+    public get Dymem():number[]|string[]{return this.dymem;}
     public get Output():string{return this.output;}
 
     public run(){
@@ -58,6 +58,9 @@ export class VM{
                 case InterOprKind.LOAD:
                     if(typeof code.Opr1 === 'number' && typeof code.Opr2 === 'number')this.runLoad(code.Opr1,code.Opr2);
                     break;
+                case InterOprKind.LDST:
+                    this.runLdst();
+                    break;
                 case InterOprKind.POP:
                     this.runPop();
                     break;
@@ -65,7 +68,7 @@ export class VM{
                     this.runAss();
                     break;
                 case InterOprKind.PUSH:
-                    if(typeof code.Opr1 === 'number') this.runPush(code.Opr1);
+                    if(typeof code.Opr1 === 'number' || typeof code.Opr1 === "string") this.runPush(code.Opr1);
                     break;
                 case InterOprKind.PUSHI:
                     if(typeof code.Opr1 === 'number' && typeof code.Opr2 === 'number')this.runPushi(code.Opr1,code.Opr2);
@@ -166,7 +169,7 @@ export class VM{
 
     private runEnd(){
         const before_bp = this.bp;
-        this.bp = this.dymem[this.bp];
+        this.bp = Number(this.dymem[this.bp]);
 
         this.dp = this.bp;
         this.dymem = this.dymem.slice(0,before_bp);
@@ -190,16 +193,22 @@ export class VM{
             return;
         }
         for(let i=0;i<level;i++){
-            new_bp = this.dymem[new_bp];
+            new_bp = Number(this.dymem[new_bp]);
         }
+
         this.runPush(new_bp+address);
+    }
+
+    private runLdst(){
+        const address = this.runPopNoOpr();
+        if(typeof address == "number") this.runPush(this.dymem[address])
     }
 
     private runAss(){
         const _address = this.runPopNoOpr();
         const _value = this.runPopNoOpr();
         const before_bp = this.bp;
-        if(typeof _address == "number"&& typeof _value == "number") this.dymem[_address] = _value;
+        if(typeof _address == "number"&& (typeof _value == "number" || typeof _value== "string")) this.dymem[_address] = _value;
         if(before_bp != this.dymem.length) this.dp = this.dymem.length-1;
     }
 
@@ -212,7 +221,7 @@ export class VM{
             return;
         }
         for(let i=0;i<level;i++){
-            new_bp = this.dymem[new_bp];
+            new_bp = Number(this.dymem[new_bp]);
         }
 
         const value = this.dymem[new_bp+address];
@@ -275,11 +284,11 @@ export class VM{
 
     private runRet(code:InterOpr){
         const result = this.runPopNoOpr();
-        this.bp = this.dymem[this.fp+2];
-        this.pc = this.dymem[this.fp+1];
+        this.bp = Number(this.dymem[this.fp+2]);
+        this.pc = Number(this.dymem[this.fp+1]);
         this.dp = this.fp - code.NumParams - 1;
 
-        this.fp = this.dymem[this.fp];
+        this.fp = Number(this.dymem[this.fp]);
         if(this.pc != -1){
             this.dymem.length = this.dp+1;
             if(typeof code.Opr1 == "number") this.stackTop -= code.Opr1;

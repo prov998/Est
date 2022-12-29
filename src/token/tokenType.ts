@@ -56,6 +56,13 @@ export enum TokenType{
 
     INT_NUMBER = "INT_NUMBER",
     FLOAT_NUMBER = "FLOAT_NUMBER",
+    CHAR = "CHAR",
+    INT_ARRANGE = "INT_ARRANGE",
+    FLOAT_ARRANGE = "FLOAT_ARRANGE",
+    CHAR_ARRANGE = "CHAR_ARRANGE",
+
+    LARRAY = "[",
+    RARRAY = "]",
     
     DOT = "DOT",
 
