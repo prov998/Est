@@ -927,6 +927,7 @@ export class Parser{
     }
 
     private ParseIdent(){
+        let index:number|null = null;
         const name = this.CurToken().Name;
         this.Next();
 
@@ -935,18 +936,18 @@ export class Parser{
             if(_ident_in_table.Type != null && !this.isTypeArray(_ident_in_table.Type)) throw new Error("[]は無効です");
             this.Next();
 
-            const index:number = Number(this.CurToken().Value);
+            index = Number(this.CurToken().Value);
             this.Next();
 
             if(this.CurToken().Type != TokenType.RARRAY) this.PutError(TokenType.RARRAY);
             this.Next();
-            
         }
+
 
         switch(_ident_in_table?.IdentKind){
             case IdentKind.FUNC:
-                const index = _ident_in_table.RelAddress
-                this.ParseFuncCall(index);
+                const _index = _ident_in_table.RelAddress
+                this.ParseFuncCall(_index);
                 break;
             case IdentKind.PARAM:
                 this.Next();
@@ -955,72 +956,149 @@ export class Parser{
                 if(this.CurToken().Type == TokenType.ASSIGN){
                     this.Next();
                     const type= this.ParseExpression();
-                    if(this.table.IsIdentTypeNull(name)){
+                    if(_ident_in_table.Type != null && this.isTypeArray(_ident_in_table.Type)){
+                        const factor_type = this.ParseTypeToArrange(type);
+                        this.table.CheckIdentType(_ident_in_table.Name,factor_type);
+                    }else if(this.table.IsIdentTypeNull(name)){
                         this.table.SetType(name,type);
                     }else{
                         this.table.CheckIdentType(_ident_in_table.Name,type);
                     }
                     this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                    if(index != null){
+                        this.genCode.EmitPush(index);
+                        this.genCode.EmitAdd();
+                    }
                     this.genCode.EmitAss();
                 }else if(this.CurToken().Type == TokenType.PLUSASSIGN){
                     this.Next();
-                    this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    if(_ident_in_table.Type != null && this.isTypeArray(_ident_in_table.Type)){
+                        this.genCode.EmitPushi(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                        if(index != null)this.genCode.EmitPush(index);
+                        this.genCode.EmitAdd();
+                        this.genCode.EmitLdst();
+                    }else{
+                        this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    }
                     const type= this.ParseExpression();
-                    if(this.table.IsIdentTypeNull(name)){
+                    if(_ident_in_table.Type != null && this.isTypeArray(_ident_in_table.Type)){
+                        const factor_type = this.ParseTypeToArrange(type);
+                        this.table.CheckIdentType(_ident_in_table.Name,factor_type);
+                    }else if(this.table.IsIdentTypeNull(name)){
                         this.table.SetType(name,type);
                     }else{
                         this.table.CheckIdentType(_ident_in_table.Name,type);
                     }
                     this.genCode.EmitAdd();
                     this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                    if(index != null){
+                        this.genCode.EmitPush(index);
+                        this.genCode.EmitAdd();
+                    }
                     this.genCode.EmitAss();
                 }else if(this.CurToken().Type == TokenType.MINUSASSIGN){
                     this.Next();
-                    this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    if(_ident_in_table.Type != null && this.isTypeArray(_ident_in_table.Type)){
+                        this.genCode.EmitPushi(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                        if(index != null)this.genCode.EmitPush(index);
+                        this.genCode.EmitAdd();
+                        this.genCode.EmitLdst();
+                    }else{
+                        this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    }
                     const type= this.ParseExpression();
-                    if(this.table.IsIdentTypeNull(name)){
+                    if(_ident_in_table.Type != null && this.isTypeArray(_ident_in_table.Type)){
+                        const factor_type = this.ParseTypeToArrange(type);
+                        this.table.CheckIdentType(_ident_in_table.Name,factor_type);
+                    }else if(this.table.IsIdentTypeNull(name)){
                         this.table.SetType(name,type);
                     }else{
                         this.table.CheckIdentType(_ident_in_table.Name,type);
                     }
                     this.genCode.EmitSub();
                     this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                    if(index != null){
+                        this.genCode.EmitPush(index);
+                        this.genCode.EmitAdd();
+                    }
                     this.genCode.EmitAss();
                 }else if(this.CurToken().Type == TokenType.MULTIASSIGN){
                     this.Next();
-                    this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    if(_ident_in_table.Type != null && this.isTypeArray(_ident_in_table.Type)){
+                        this.genCode.EmitPushi(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                        if(index != null)this.genCode.EmitPush(index);
+                        this.genCode.EmitAdd();
+                        this.genCode.EmitLdst();
+                    }else{
+                        this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    }
                     const type= this.ParseExpression();
-                    if(this.table.IsIdentTypeNull(name)){
+                    if(_ident_in_table.Type != null && this.isTypeArray(_ident_in_table.Type)){
+                        const factor_type = this.ParseTypeToArrange(type);
+                        this.table.CheckIdentType(_ident_in_table.Name,factor_type);
+                    }else if(this.table.IsIdentTypeNull(name)){
                         this.table.SetType(name,type);
                     }else{
                         this.table.CheckIdentType(_ident_in_table.Name,type);
                     }
                     this.genCode.EmitMul();
                     this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                    if(index != null){
+                        this.genCode.EmitPush(index);
+                        this.genCode.EmitAdd();
+                    }
                     this.genCode.EmitAss();
                 }else if(this.CurToken().Type == TokenType.DIVASSIGN){
                     this.Next();
-                    this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    if(_ident_in_table.Type != null && this.isTypeArray(_ident_in_table.Type)){
+                        this.genCode.EmitPushi(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                        if(index != null)this.genCode.EmitPush(index);
+                        this.genCode.EmitAdd();
+                        this.genCode.EmitLdst();
+                    }else{
+                        this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    }
                     const type= this.ParseExpression();
-                    if(this.table.IsIdentTypeNull(name)){
+                    if(_ident_in_table.Type != null && this.isTypeArray(_ident_in_table.Type)){
+                        const factor_type = this.ParseTypeToArrange(type);
+                        this.table.CheckIdentType(_ident_in_table.Name,factor_type);
+                    }else if(this.table.IsIdentTypeNull(name)){
                         this.table.SetType(name,type);
                     }else{
                         this.table.CheckIdentType(_ident_in_table.Name,type);
                     }
                     this.genCode.EmitDiv();
                     this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                    if(index != null){
+                        this.genCode.EmitPush(index);
+                        this.genCode.EmitAdd();
+                    }
                     this.genCode.EmitAss();
                 }else if(this.CurToken().Type == TokenType.MODASSIGN){
                     this.Next();
-                    this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    if(_ident_in_table.Type != null && this.isTypeArray(_ident_in_table.Type)){
+                        this.genCode.EmitPushi(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                        if(index != null)this.genCode.EmitPush(index);
+                        this.genCode.EmitAdd();
+                        this.genCode.EmitLdst();
+                    }else{
+                        this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                    }
                     const type= this.ParseExpression();
-                    if(this.table.IsIdentTypeNull(name)){
+                    if(_ident_in_table.Type != null && this.isTypeArray(_ident_in_table.Type)){
+                        const factor_type = this.ParseTypeToArrange(type);
+                        this.table.CheckIdentType(_ident_in_table.Name,factor_type);
+                    }else if(this.table.IsIdentTypeNull(name)){
                         this.table.SetType(name,type);
                     }else{
                         this.table.CheckIdentType(_ident_in_table.Name,type);
                     }
                     this.genCode.EmitMod();
                     this.genCode.EmitPushi(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                    if(index != null){
+                        this.genCode.EmitPush(index);
+                        this.genCode.EmitAdd();
+                    }
                     this.genCode.EmitAss();
                 }else if(this.CurToken().Type == TokenType.INC){
                     this.Next();
@@ -1031,6 +1109,12 @@ export class Parser{
                     if(_ident_in_table != undefined)
                     this.PostfixDec(_ident_in_table);
                 }else{
+                    if(index != null){
+                        this.genCode.EmitPushi(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
+                        this.genCode.EmitPush(index);
+                        this.genCode.EmitAdd();
+                        this.genCode.EmitLdst();
+                    }
                     this.genCode.EmitLoad(this.level - _ident_in_table.Level,_ident_in_table.RelAddress);
                 }
                 break;
