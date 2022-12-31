@@ -1,3 +1,4 @@
+import { Modifier } from "../type/modifier_type";
 import { Types } from "../type/type";
 
 export enum IdentKind{
@@ -5,6 +6,7 @@ export enum IdentKind{
     VAR = "VAR",
     CONST = "CONST",
     PARAM = "PARAM",
+    CLASS = "CLASS",
 }
 
 export class IdentFactor{
@@ -15,8 +17,10 @@ export class IdentFactor{
     private level:number;
     private relAddress:number;
     private numParams:number|null;
+    private modifier:Modifier = Modifier.PUB;
+    private in_class_number:number|null = null;
 
-    constructor(name:string,type:Types|null,identKind:IdentKind,size:number,level:number,relAddress:number,numParams:number|null){
+    constructor(name:string,type:Types|null,identKind:IdentKind,size:number,level:number,relAddress:number,numParams:number|null,modifier:Modifier,in_class_number:number|null = null){
         this.name = name;
         this.type = type; //type ->intなどの型注釈
         this.identKind = identKind //identKind ->識別子のパターン
@@ -24,6 +28,8 @@ export class IdentFactor{
         this.level = level;
         this.relAddress = relAddress;
         this.numParams = numParams; //関数の場合に使用
+        this.modifier = modifier;
+        this.in_class_number = in_class_number
     }
 
     public get Name():string{return this.name;}
@@ -33,6 +39,8 @@ export class IdentFactor{
     public get Level():number{return this.level;}
     public get RelAddress():number {return this.relAddress;}
     public get NumParams():number|null {return this.numParams;}
+    public get Modifier():Modifier{return this.modifier;}
+    public get InClassNumber():null|number{return this.in_class_number;}
 
     public incNumParams(){
         if(this.numParams == null) throw new Error("ERROR");
@@ -49,6 +57,10 @@ export class IdentFactor{
 
     public set SetSize(size:number){
         this.size = size;
+    }
+
+    public set SetMemberNumber(num:number){
+        this.in_class_number = num;
     }
     
 }

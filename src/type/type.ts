@@ -10,6 +10,7 @@ export enum Types{
     INT_ARRANGE = "INT[]",
     FLOAT_ARRANGE = "FLOAT[]",
     CHAR_ARRANGE = "CHAR[]",
+    CLASS = "CLASS",
 }
 
 export function CastWithOpr(type1:Types,type2:Types,opr:TokenType):Types{
@@ -122,6 +123,8 @@ export function CastWithOpr(type1:Types,type2:Types,opr:TokenType):Types{
                 default:
                     throw new Error("")
             }
+        case Types.CLASS:
+            return Types.CLASS
         default:
             return Types.VOID
     }

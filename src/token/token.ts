@@ -21,6 +21,14 @@ export function keyWord(name:string){
     switch(name){
         case "func":
             return TokenType.FUNC
+        case "class":
+            return TokenType.CLASS
+        case "pub":
+            return TokenType.PUB
+        case "prv":
+            return TokenType.PRV
+        case "new":
+            return TokenType.NEW
         case "end":
             return TokenType.END
         case "return":

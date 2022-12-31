@@ -7,14 +7,22 @@ import { VM } from "../virtualMachine/vm";
 export let run = ()=>{
     let input = `
 
-        func main>>
-            var x:int[2];
+        class Stdout>>
+            func PrintA>>
+                println 'A';
+            end
 
-            x[1] = 3;
-            x[1] +=45;
+            func PrintB>>
+                println  'B';
+            end
 
-            println x[1];
         end
+
+        func main()>>
+            var std:Stdout = new Stdout();
+            //std.PrintA();
+        end
+
     `
     let lexer = new Lexer(input);
 
@@ -49,7 +57,8 @@ export let run = ()=>{
 
     console.log("STACK:",vm.Stack);
     console.log("DYMEM:",vm.Dymem);
-    console.log("OUTPUT:",vm.Output);     
+    console.log("HEEP:",vm.Heep)
+    console.log("OUTPUT:",vm.Output);      
 }
 
 run();

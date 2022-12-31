@@ -35,8 +35,24 @@ export class GenCode{
         return this.Emit(new InterOpr(InterOprKind.LOAD,level,address,0,0));
     }
 
+    public EmitLscll(){
+        return this.Emit(new InterOpr(InterOprKind.LSCLL,null,null,0,0));
+    }
+
+    public EmiHeld(){
+        return this.Emit(new InterOpr(InterOprKind.HELD,null,null,0,0));
+    }
+
+    public EmitHepu(){
+        return this.Emit(new InterOpr(InterOprKind.HEPU,null,null,0,0));
+    }
+
     public EmitLdst(){
         return this.Emit(new InterOpr(InterOprKind.LDST,null,null,0,0));
+    }
+
+    public EmitNew(capacity:number){
+        return this.Emit(new InterOpr(InterOprKind.NEW,capacity,null,0,0));
     }
 
     public EmitPushi(level:number,address:number){

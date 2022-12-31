@@ -5,6 +5,10 @@ export enum InterOprKind{
     PUSHI = "PUSHI",//アドレスだけを取得
     ASS = "ASS",//opr1をopr2(address)に代入
     LDST = "LDST",//stackの先頭の値をアドレスとして、そのアドレスの値を取得
+    HELD = "HELD",//HeapLoad Stack先頭の値をアドレスとして、ヒープメモリから取得
+    HEPU = "HEPU",//HeapPush Stack先頭の値をヒープのアドレス（opr1,opr2から計算）にpush
+
+    LSCLL = "LSCLL",//stackの先頭の値をアドレスとして、call[アドレス]を実行
 
     COPY = "COPY",
     INC = "INC",
@@ -12,6 +16,8 @@ export enum InterOprKind{
 
     CALL = "CALL",
     RET = "RET",
+
+    NEW = "NEW",//classはcapacity(>1)をもつ。すべてのメンバおよびクラスが１としてカウントされる
 
     START = "START",
     LABEL = "LABEL",

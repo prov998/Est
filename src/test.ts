@@ -9,15 +9,24 @@ import { VM } from "./virtualMachine/vm";
 test("check",()=>{
     let input = `
 
-    func main>>
-        var x = 100;
-        
-        while x < 110 do
-            x++;
+    class Stdout>>
+            func PrintA>>
+                println 'A';
+            end
+
+            func PrintB>>
+                println  'B';
+            end
+
+            func PrintC>>
+                println  'C';
+            end
         end
 
-        println x;
-    end
+        func main()>>
+            var std:Stdout = new Stdout();
+            //std.PrintA();
+        end
     `
     let lexer = new Lexer(input);
 

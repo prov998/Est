@@ -2,6 +2,12 @@ export enum TokenType{
     FUNC = "FUNC",
     RET = "RET",
 
+    CLASS = "CLASS",
+    PUB = "PUB",
+    PRV = "PRV",
+
+    NEW = "NEW",
+
     IDENT = "IDENT",
     LEADER = ">>",
     END = "END",

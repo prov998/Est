@@ -1,3 +1,4 @@
+import { Modifier } from "../type/modifier_type";
 import { Types } from "../type/type";
 import {IdentFactor, IdentKind} from "./identFactor"
 
@@ -20,9 +21,25 @@ export class NameTable{
         this.display = [];
     }
 
-    public RegisterFunction(name:string,index:number){
+    public RegisterClass(name:string,index:number){
         this.curFunctionAddress = this.table.length;
-        this.table.push(new IdentFactor(name,null,IdentKind.FUNC,1,this.level++,index,0));
+        this.table.push(new IdentFactor(name,null,IdentKind.CLASS,1,this.level++,index,0,Modifier.PUB));
+        this.display.push({address:this.table.length,localAddress:this.localAddress});
+        this.localAddress = 1;
+        return this.curFunctionAddress;
+    }
+
+    public ClassOwnMemberBackPatch(name:string,new_member_number:number){
+        const length = this.table.length;
+
+        for(let i = length-1;i>=0;i--){
+            if(this.table[i].Name == name) this.table[i].SetMemberNumber = new_member_number;
+        }
+    }
+
+    public RegisterFunction(name:string,index:number,in_class_number:number|null = null){
+        this.curFunctionAddress = this.table.length;
+        this.table.push(new IdentFactor(name,null,IdentKind.FUNC,1,this.level++,index,0,Modifier.PUB,in_class_number));
         this.display.push({address:this.table.length,localAddress:this.localAddress});
         this.localAddress = 1;
         return this.curFunctionAddress;
@@ -34,7 +51,7 @@ export class NameTable{
 
     public AddFunctionParameter(name:string,type:Types){
         const address = this.table.length;
-        this.table.push(new IdentFactor(name,type,IdentKind.PARAM,1,this.level,0,null));
+        this.table.push(new IdentFactor(name,type,IdentKind.PARAM,1,this.level,0,null,Modifier.PUB));
         this.table[this.curFunctionAddress].incNumParams();
         return address;
     }
@@ -59,21 +76,38 @@ export class NameTable{
         this.localAddress += new_size-1;
     }
 
+    public SearchClass(name:string){
+        const length = this.table.length;
+
+        for(let i = length-1;i>=0;i--){
+            if(this.table[i].Name == name && this.table[i].IdentKind == IdentKind.CLASS) return this.table[i]; 
+        }
+
+    }
+
+    public EndClass(){
+        const _dis= this.display.pop();
+        if(_dis == undefined) throw new Error("");
+        //this.table.length = _dis.address;
+        this.localAddress = _dis.localAddress; 
+        this.level--;
+    }
+
     public EndFunction(){
         const _dis= this.display.pop();
         if(_dis == undefined) throw new Error("");
         this.table.length = _dis.address;
-        this.localAddress = this.localAddress; 
+        this.localAddress = _dis.localAddress;
         this.level--;
     }
 
-    public RegisterVar(name:string,type:Types|null,size:number){
-        this.table.push(new IdentFactor(name,type,IdentKind.VAR,size,this.level,this.localAddress,null));
+    public RegisterVar(name:string,type:Types|null,size:number,in_class_number:null|number = null){
+        this.table.push(new IdentFactor(name,type,IdentKind.VAR,size,this.level,this.localAddress,null,Modifier.PUB,in_class_number));
         this.localAddress += size
     }
 
-    public RegisterConst(name:string,type:Types|null,size:number){
-        this.table.push(new IdentFactor(name,type,IdentKind.CONST,size,this.level,this.localAddress,null));
+    public RegisterConst(name:string,type:Types|null,size:number,in_class_number:null|number = null){
+        this.table.push(new IdentFactor(name,type,IdentKind.CONST,size,this.level,this.localAddress,null,Modifier.PUB,in_class_number));
         this.localAddress += size
     }
 

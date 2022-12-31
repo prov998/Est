@@ -6,31 +6,48 @@ export class VM{
     private pc:number; //program counter
     private stack:number[]|string[];
     private dymem:number[]|string[];
+    private HeepMem:number[]|string[];
     private stackTop:number;
     private bp:number; //block pointer
     private dp:number; //dymemの先頭のアドレス
     private fp:number; //frame pointer
+    private hp:number; //heepmemory pointer
     private output:string;
     constructor(codes:InterOpr[]){
         this.codes = codes;
         this.pc = 0;
         this.stack = [0,0,0];
         this.dymem = [];
+        this.HeepMem = [];
         this.stackTop = this.stack.length;
         this.dp = -1;
         this.bp = 0;
         this.fp = 0;
+        this.hp = -1;
         this.output = "";
     }
 
     public get Stack():number[]|string[]{return this.stack;}
     public get Dymem():number[]|string[]{return this.dymem;}
     public get Output():string{return this.output;}
+    public get Heep():number[]|string[]{return this.HeepMem;}
 
     public run(){
         while(true){
             let code = this.codes[this.pc++];
             switch(code.Kind){
+                case InterOprKind.NEW:
+                    if(typeof code.Opr1 === 'number') this.runNew(code.Opr1);
+                    break;
+                case InterOprKind.HELD:
+                    this.runHeld();
+                    break;
+                case InterOprKind.HEPU:
+                    if(typeof code.Opr1 === 'number') this.runHepu(code.Opr1);
+                    break;
+                case InterOprKind.LSCLL:
+                    this.runLscll();
+                    break;
                 case InterOprKind.COPY:
                     this.runCopy();
                     break;
@@ -139,6 +156,37 @@ export class VM{
             if(this.pc >= this.codes.length) break;
             if(this.pc == 0) break;
         }
+    }
+
+    private runNew(capacity:number){
+        const _hp = this.hp+1;
+        for(let i=0;i<capacity+1;i++){
+            this.HeepMem[++this.hp] = 0;
+        }
+
+        this.runPush(_hp)
+    }
+
+    private runHeld(){
+        const address = this.runPopNoOpr();
+        if(typeof address != "number") throw new Error("")
+        const value = this.HeepMem[address];
+
+        if(value == undefined) throw new Error("Undefined");
+
+        this.runPush(value);
+    }
+
+    private runHepu(value:number|string){
+        const address = this.runPopNoOpr();
+        if(typeof address != "number") throw new Error("")
+        this.HeepMem[address] = value;
+    }
+
+    private runLscll(){
+        const address = this.runPopNoOpr();
+
+        this.runCall(new InterOpr(InterOprKind.CALL,address,null,0,0));
     }
 
     private runCopy(){

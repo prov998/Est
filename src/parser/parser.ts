@@ -15,7 +15,7 @@ export class Parser{
     private isInCondition:boolean = false;
     private loop_continue_index:number[] = [];
     private loop_break_index:number[] = [];
-
+    private classNames:string[] = [];
     private wasMainDecled:boolean = false;
 
     constructor(tokens:Token[]){
@@ -29,17 +29,12 @@ export class Parser{
 
     public getErrors(){return this.errors;}
 
-    public getCodes(){
-        //this.genCode.getCodes().forEach(code=>{console.log(code.Kind,code.Opr1,code.Level,code.NumParams)})
-        return this.genCode.getCodes();
-    }
+    public getCodes(){ return this.genCode.getCodes();}
 
     public getTable(){return this.table;}
 
     //indexを進める
-    private Next(){
-        this.index++;
-    }
+    private Next(){this.index++;}
     
 
     private CurToken(){
@@ -77,12 +72,43 @@ export class Parser{
                 case TokenType.FUNC:
                     this.ParseFuncDecl();
                     continue;
+                case TokenType.CLASS:
+                    this.ParseClassDecl();
+                    continue;
                 default:
                     break;
             }
             break;
         }
         this.ParseStatement();
+    }
+
+    private ParseClassDecl(){
+        let in_class_number:number = 0;
+        if(!this.CheckToken(TokenType.IDENT)) this.PutError(TokenType.IDENT);
+        const name = this.CurToken().Name;
+        if(!this.CheckToken(TokenType.LEADER)) this.PutError(TokenType.LEADER);
+        this.Next();
+
+        this.table.RegisterClass(name,this.genCode.getIndex());
+        this.level++;
+        this.classNames.push(name);
+
+        while(true){
+            switch(this.CurToken().Type){
+                case TokenType.FUNC:
+                    this.ParseFuncDecl(++in_class_number)
+                    break;
+                default:
+                    break;
+            }
+            if(this.CurToken().Type == TokenType.END)break;
+        }
+        this.Next();
+        this.level--;
+        this.table.ClassOwnMemberBackPatch(name,in_class_number);
+        this.table.EndClass();
+        //console.log(this.table.Table)
     }
 
     private SemicolonCheck(){
@@ -468,7 +494,19 @@ export class Parser{
         this.genCode.EmitPrtln();
     }
 
+    private isClassName(name:string):boolean{
+        var result:boolean = false;
+        this.classNames.forEach(_name=>{
+            if(_name == name) result = true;
+        })
+
+        return result
+    }
+
     private ParseType(){
+        if(this.isClassName(this.CurToken().Name)){
+            return Types.CLASS
+        }
         switch(this.CurToken().Type){
             case TokenType.INT:
                 return Types.INT
@@ -519,18 +557,28 @@ export class Parser{
         }
     }
 
+    public SearchClass(name:string){
+        const ident:IdentFactor|undefined = this.table.SearchClass(name);
+        return ident
+    }
+
     private ParseVarDecl(){
         var type:Types|null = null;
         var var_size = 1;
         var SizeWasDecled:boolean = false;
+        var heap_size:number|null = null;
         while(true){
             if(this.CurToken().Type!=TokenType.IDENT) this.PutError(TokenType.IDENT);
             const name = this.CurToken().Name;
             this.Next();
-
             if(this.CurToken().Type == TokenType.COLON){
                 this.Next();
                 type = this.ParseType();
+                if(type == Types.CLASS && (this.SearchClass(this.CurToken().Name) != undefined)){
+                    const ident = this.table.Exist(this.CurToken().Name);
+                    if(ident == undefined) throw new Error("")
+                    heap_size = ident.InClassNumber;
+                }
                 this.Next();
                 if(this.CurToken().Type == TokenType.LARRAY){
                     this.Next();
@@ -545,7 +593,8 @@ export class Parser{
                 }
             }
 
-            this.table.RegisterVar(name,type,var_size);
+            console.log("heap_size",heap_size)
+            this.table.RegisterVar(name,type,var_size,heap_size);
 
             if(type != null && this.isTypeArray(type)){
                 var initialize:number|string;
@@ -595,7 +644,6 @@ export class Parser{
 
                         this.genCode.EmitPushi(this.level-new_factor_in_table.Level,new_factor_in_table.RelAddress+number_counted);
                         this.genCode.EmitAss();
-                        //this.Next();
 
                         if(this.CurToken().Type == TokenType.RARRAY) break;
                     }
@@ -604,6 +652,23 @@ export class Parser{
                         this.table.SetSizeArray(var_size,name)
                     }
                     if(number_counted != var_size-1) throw new Error("Size is Different!")
+                    this.Next();
+                }else if(this.CurToken().Type == TokenType.NEW){
+                    this.Next();
+                    if(new_factor_in_table.InClassNumber == null) throw new Error("ClassInitError!!")
+                    this.genCode.EmitNew(new_factor_in_table.InClassNumber);
+                    this.genCode.EmitPushi(this.level-new_factor_in_table.Level,new_factor_in_table.RelAddress);
+                    this.genCode.EmitAss();
+
+                    if(!this.isClassName(this.CurToken().Name)) throw new Error("Class does not exist!");
+                    const class_name = this.CurToken().Name;
+                    this.CheckToken(TokenType.LPAREN);
+
+                    while(true){
+                        if(this.CurToken().Type == TokenType.RPAREN) break;
+                        this.Next();
+                    }
+
                     this.Next();
                 }else{
                     const type = this.ParseExpression();
@@ -943,8 +1008,10 @@ export class Parser{
             this.Next();
         }
 
-
         switch(_ident_in_table?.IdentKind){
+            case IdentKind.CLASS:
+                this.ClassCall(_ident_in_table.Level,_ident_in_table.RelAddress);
+                break;
             case IdentKind.FUNC:
                 const _index = _ident_in_table.RelAddress
                 this.ParseFuncCall(_index);
@@ -1124,20 +1191,24 @@ export class Parser{
         }
     }
 
+    private ClassCall(class_level:number,class_address:number){
+
+        
+    }
+
     private ParseFuncParams(param:IdentFactor){
 
         this.genCode.EmitLoad(this.level-param.Level,param.RelAddress);
     }
 
     private ParseFuncCall(index:number){
-        var func_return_type;
         if(this.CurToken().Type != TokenType.LPAREN) this.PutError(TokenType.LPAREN);
         this.Next();
         const preEmitIndex = this.genCode.getIndex();
         if(this.CurToken().Type == TokenType.RPAREN){
 
         }else while(true){
-            func_return_type = this.ParseExpression();
+            this.ParseExpression();
             if(this.genCode.getIndex() != preEmitIndex) this.genCode.EmitPop();
             if(this.CurToken().Type == TokenType.COMMA){
                 this.Next();
@@ -1150,7 +1221,7 @@ export class Parser{
         this.genCode.EmitCall(index);
     }
 
-    private ParseFuncDecl(){
+    private ParseFuncDecl(in_class_number:number|null = null){
 
         let wasReturned:boolean = false;
         let func_return_type;
@@ -1164,8 +1235,7 @@ export class Parser{
             this.genCode.BackPatch1(0,this.genCode.getIndex()-1);
         }else this.genCode.EmitLabel(name);
 
-        this.table.RegisterFunction(name,this.genCode.getIndex()-1);
-
+        this.table.RegisterFunction(name,this.genCode.getIndex()-1,in_class_number);
         this.level++;
         this.Next();
         if(this.CurToken().Type == TokenType.LPAREN) this.Next();
@@ -1189,7 +1259,7 @@ export class Parser{
                 try{
                     func_return_type = this.ParseType();
                     this.Next();
-                }catch(e){
+                }catch{
                     func_return_type = Types.VOID;
                 }
                 this.table.FunctionTypeBackPatch(func_return_type);
@@ -1215,6 +1285,7 @@ export class Parser{
             this.Next();
         }
 
+        console.log(func_return_type)
         if(func_return_type != Types.VOID && !wasReturned) throw new Error("returnが必要です");
 
         this.table.EndFunction();
