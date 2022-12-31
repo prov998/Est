@@ -9,6 +9,7 @@ export let run = ()=>{
 
         class Stdout>>
             func PrintA>>
+                var x = 10;
                 println 'A';
             end
 
@@ -18,9 +19,15 @@ export let run = ()=>{
 
         end
 
+        func PrintC>>
+            println 'C';
+        end
+
         func main()>>
             var std:Stdout = new Stdout();
-            //std.PrintA();
+            std.PrintA();
+            std.PrintB();
+            std.PrintC();
         end
 
     `
@@ -58,7 +65,7 @@ export let run = ()=>{
     console.log("STACK:",vm.Stack);
     console.log("DYMEM:",vm.Dymem);
     console.log("HEEP:",vm.Heep)
-    console.log("OUTPUT:",vm.Output);      
+    console.log("OUTPUT:",vm.Output); 
 }
 
 run();

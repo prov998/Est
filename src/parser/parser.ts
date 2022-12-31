@@ -97,7 +97,7 @@ export class Parser{
         while(true){
             switch(this.CurToken().Type){
                 case TokenType.FUNC:
-                    this.ParseFuncDecl(++in_class_number)
+                    this.ParseFuncDecl(null,name)
                     break;
                 default:
                     break;
@@ -627,9 +627,7 @@ export class Parser{
                     var number_counted = 0;
                     var factor_type:Types|null|undefined = null;
 
-                    if(new_factor_in_table.Type != null){
-                        factor_type = this.ParseTypeArrayFactor(new_factor_in_table.Type);
-                    }
+                    if(new_factor_in_table.Type != null) factor_type = this.ParseTypeArrayFactor(new_factor_in_table.Type);
                     this.Next();
 
                     while(true){
@@ -662,6 +660,7 @@ export class Parser{
 
                     if(!this.isClassName(this.CurToken().Name)) throw new Error("Class does not exist!");
                     const class_name = this.CurToken().Name;
+                    this.table.classNameBackPatch(new_factor_in_table.Name,class_name);
                     this.CheckToken(TokenType.LPAREN);
 
                     while(true){
@@ -1008,11 +1007,14 @@ export class Parser{
             this.Next();
         }
 
+        if(_ident_in_table?.Type == Types.CLASS){
+            this.ClassCall();
+            return;
+        }
+
         switch(_ident_in_table?.IdentKind){
-            case IdentKind.CLASS:
-                this.ClassCall(_ident_in_table.Level,_ident_in_table.RelAddress);
-                break;
             case IdentKind.FUNC:
+                if(_ident_in_table.ClassName != '') throw new Error("this identifier is not object that has this method.");
                 const _index = _ident_in_table.RelAddress
                 this.ParseFuncCall(_index);
                 break;
@@ -1191,8 +1193,18 @@ export class Parser{
         }
     }
 
-    private ClassCall(class_level:number,class_address:number){
+    private ClassCall(){
+        if(this.CurToken().Type == TokenType.DOT){
+            this.Next();
+            const member_name = this.CurToken().Name;
 
+            const ident = this.table.Exist(member_name);
+            if(ident == null) throw new Error("");
+            const index = ident.RelAddress;
+
+            this.Next();
+            this.ParseFuncCall(index);
+        }
         
     }
 
@@ -1201,7 +1213,7 @@ export class Parser{
         this.genCode.EmitLoad(this.level-param.Level,param.RelAddress);
     }
 
-    private ParseFuncCall(index:number){
+    private ParseFuncCall(index:number|null){
         if(this.CurToken().Type != TokenType.LPAREN) this.PutError(TokenType.LPAREN);
         this.Next();
         const preEmitIndex = this.genCode.getIndex();
@@ -1218,10 +1230,11 @@ export class Parser{
         }
         if(this.CurToken().Type != TokenType.RPAREN) this.PutError(TokenType.RPAREN);
         this.Next();
-        this.genCode.EmitCall(index);
+        if(index == null) this.genCode.EmitLscll();
+        else this.genCode.EmitCall(index);
     }
 
-    private ParseFuncDecl(in_class_number:number|null = null){
+    private ParseFuncDecl(in_class_number:number|null = null,className:string = ""){
 
         let wasReturned:boolean = false;
         let func_return_type;
@@ -1235,7 +1248,7 @@ export class Parser{
             this.genCode.BackPatch1(0,this.genCode.getIndex()-1);
         }else this.genCode.EmitLabel(name);
 
-        this.table.RegisterFunction(name,this.genCode.getIndex()-1,in_class_number);
+        this.table.RegisterFunction(name,this.genCode.getIndex()-1,in_class_number,className);
         this.level++;
         this.Next();
         if(this.CurToken().Type == TokenType.LPAREN) this.Next();

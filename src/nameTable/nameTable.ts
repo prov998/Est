@@ -11,6 +11,7 @@ export class NameTable{
     private table:IdentFactor[];
     private level:number;
     private localAddress:number;
+    private curClassAddress:number
     private curFunctionAddress:number;
     private display:{address:number,localAddress:number}[];
     constructor(){
@@ -18,15 +19,16 @@ export class NameTable{
         this.level = -1;
         this.localAddress = 1;
         this.curFunctionAddress = 0;
+        this.curClassAddress = 0;
         this.display = [];
     }
 
     public RegisterClass(name:string,index:number){
-        this.curFunctionAddress = this.table.length;
+        this.curClassAddress = this.table.length;
         this.table.push(new IdentFactor(name,null,IdentKind.CLASS,1,this.level++,index,0,Modifier.PUB));
         this.display.push({address:this.table.length,localAddress:this.localAddress});
         this.localAddress = 1;
-        return this.curFunctionAddress;
+        return this.curClassAddress;
     }
 
     public ClassOwnMemberBackPatch(name:string,new_member_number:number){
@@ -37,9 +39,9 @@ export class NameTable{
         }
     }
 
-    public RegisterFunction(name:string,index:number,in_class_number:number|null = null){
+    public RegisterFunction(name:string,index:number,in_class_number:number|null = null,className:string = ""){
         this.curFunctionAddress = this.table.length;
-        this.table.push(new IdentFactor(name,null,IdentKind.FUNC,1,this.level++,index,0,Modifier.PUB,in_class_number));
+        this.table.push(new IdentFactor(name,null,IdentKind.FUNC,1,this.level++,index,0,Modifier.PUB,in_class_number,className));
         this.display.push({address:this.table.length,localAddress:this.localAddress});
         this.localAddress = 1;
         return this.curFunctionAddress;
@@ -83,6 +85,12 @@ export class NameTable{
             if(this.table[i].Name == name && this.table[i].IdentKind == IdentKind.CLASS) return this.table[i]; 
         }
 
+    }
+
+    public classNameBackPatch(name:string,new_name:string){
+        this.table.forEach(ident=>{
+            if(ident.Name == name) ident.SetClassName = new_name;
+        })
     }
 
     public EndClass(){

@@ -19,8 +19,9 @@ export class IdentFactor{
     private numParams:number|null;
     private modifier:Modifier = Modifier.PUB;
     private in_class_number:number|null = null;
+    private className:string = "";
 
-    constructor(name:string,type:Types|null,identKind:IdentKind,size:number,level:number,relAddress:number,numParams:number|null,modifier:Modifier,in_class_number:number|null = null){
+    constructor(name:string,type:Types|null,identKind:IdentKind,size:number,level:number,relAddress:number,numParams:number|null,modifier:Modifier,in_class_number:number|null = null,className:string = ""){
         this.name = name;
         this.type = type; //type ->intなどの型注釈
         this.identKind = identKind //identKind ->識別子のパターン
@@ -29,7 +30,8 @@ export class IdentFactor{
         this.relAddress = relAddress;
         this.numParams = numParams; //関数の場合に使用
         this.modifier = modifier;
-        this.in_class_number = in_class_number
+        this.in_class_number = in_class_number;
+        this.className = className;
     }
 
     public get Name():string{return this.name;}
@@ -41,6 +43,7 @@ export class IdentFactor{
     public get NumParams():number|null {return this.numParams;}
     public get Modifier():Modifier{return this.modifier;}
     public get InClassNumber():null|number{return this.in_class_number;}
+    public get ClassName():string{return this.className;}
 
     public incNumParams(){
         if(this.numParams == null) throw new Error("ERROR");
@@ -61,6 +64,10 @@ export class IdentFactor{
 
     public set SetMemberNumber(num:number){
         this.in_class_number = num;
+    }
+
+    public set SetClassName(name:string){
+        this.className = name;
     }
     
 }
