@@ -8,26 +8,20 @@ export let run = ()=>{
     let input = `
 
         class Stdout>>
-            func PrintA>>
-                var x = 10;
-                println 'A';
+            prv x:int;
+
+            prv func Print(a:int)>>
+                this.x = a;
             end
 
-            func PrintB>>
-                println  'B';
-            end
-
-        end
-
-        func PrintC>>
-            println 'C';
         end
 
         func main()>>
             var std:Stdout = new Stdout();
-            std.PrintA();
-            std.PrintB();
-            std.PrintC();
+            var sss:Stdout = new Stdout();
+
+            sss.Print(30);
+            std.Print();
         end
 
     `
@@ -65,7 +59,7 @@ export let run = ()=>{
     console.log("STACK:",vm.Stack);
     console.log("DYMEM:",vm.Dymem);
     console.log("HEEP:",vm.Heep)
-    console.log("OUTPUT:",vm.Output); 
+    console.log("OUTPUT:",vm.Output);  
 }
 
 run();

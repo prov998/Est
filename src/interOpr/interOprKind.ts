@@ -2,11 +2,13 @@ export enum InterOprKind{
     PUSH = "PUSH", //opr1 push number to stack
     POP = "POP",//opr1 or null pop the head of stack,and push the value to opr1 or no
     LOAD = "LOAD",//opr1 and opr2 から計算したアドレスの値を取得
+    THLD = "THLD",//thisオブジェクトのアドレスをロードする
     PUSHI = "PUSHI",//アドレスだけを取得
     ASS = "ASS",//opr1をopr2(address)に代入
     LDST = "LDST",//stackの先頭の値をアドレスとして、そのアドレスの値を取得
     HELD = "HELD",//HeapLoad Stack先頭の値をアドレスとして、ヒープメモリから取得
     HEPU = "HEPU",//HeapPush Stack先頭の値をヒープのアドレス（opr1,opr2から計算）にpush
+    HEAS = "HEAS",//ASSのheep版
 
     LSCLL = "LSCLL",//stackの先頭の値をアドレスとして、call[アドレス]を実行
 

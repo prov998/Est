@@ -39,9 +39,14 @@ export class NameTable{
         }
     }
 
-    public RegisterFunction(name:string,index:number,in_class_number:number|null = null,className:string = ""){
+    public RegisterProperty(name:string,type:Types|null,size:number,in_class_number:null|number = null,modifier:Modifier,class_name:string){
+        this.table.push(new IdentFactor(name,type,IdentKind.PROPERTY,size,this.level,this.localAddress,null,modifier,in_class_number,class_name));
+        this.localAddress += size
+    }
+
+    public RegisterFunction(name:string,index:number,in_class_number:number|null = null,className:string = "",modifier:Modifier){
         this.curFunctionAddress = this.table.length;
-        this.table.push(new IdentFactor(name,null,IdentKind.FUNC,1,this.level++,index,0,Modifier.PUB,in_class_number,className));
+        this.table.push(new IdentFactor(name,null,IdentKind.FUNC,1,this.level++,index,0,modifier,in_class_number,className));
         this.display.push({address:this.table.length,localAddress:this.localAddress});
         this.localAddress = 1;
         return this.curFunctionAddress;
@@ -109,8 +114,8 @@ export class NameTable{
         this.level--;
     }
 
-    public RegisterVar(name:string,type:Types|null,size:number,in_class_number:null|number = null){
-        this.table.push(new IdentFactor(name,type,IdentKind.VAR,size,this.level,this.localAddress,null,Modifier.PUB,in_class_number));
+    public RegisterVar(name:string,type:Types|null,size:number,in_class_number:null|number = null,modifier:Modifier,class_name:string){
+        this.table.push(new IdentFactor(name,type,IdentKind.VAR,size,this.level,this.localAddress,null,modifier,in_class_number,class_name));
         this.localAddress += size
     }
 
@@ -160,6 +165,10 @@ export class NameTable{
         }
 
         throw new Error("");
+    }
+
+    public FirstIdent(){
+        return this.table[this.table.length-1];
     }
 
     //nameが存在するか　存在したらその識別子を返す

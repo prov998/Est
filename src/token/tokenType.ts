@@ -7,6 +7,7 @@ export enum TokenType{
     PRV = "PRV",
 
     NEW = "NEW",
+    THIS = "THIS",
 
     IDENT = "IDENT",
     LEADER = ">>",

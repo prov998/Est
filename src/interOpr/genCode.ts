@@ -75,6 +75,14 @@ export class GenCode{
         return this.Emit(new InterOpr(InterOprKind.CALL,index,null,0,0));
     }
 
+    public EmitThld(){
+        return this.Emit(new InterOpr(InterOprKind.THLD,null,null,0,0));
+    }
+
+    public EmitHeas(){
+        return this.Emit(new InterOpr(InterOprKind.HEAS,null,null,0,0));
+    }
+
     public EmitLabel(name:string){
         return this.Emit(new InterOpr(InterOprKind.LABEL,name,null,-1,0));
     }

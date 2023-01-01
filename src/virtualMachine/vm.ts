@@ -36,6 +36,12 @@ export class VM{
         while(true){
             let code = this.codes[this.pc++];
             switch(code.Kind){
+                case InterOprKind.HEAS:
+                    this.runHeas();
+                    break;
+                case InterOprKind.THLD:
+                    this.runThld();
+                    break;
                 case InterOprKind.NEW:
                     if(typeof code.Opr1 === 'number') this.runNew(code.Opr1);
                     break;
@@ -156,6 +162,22 @@ export class VM{
             if(this.pc >= this.codes.length) break;
             if(this.pc == 0) break;
         }
+    }
+
+    private runHeas(){
+        console.log(this.stack)
+        const _address = this.runPopNoOpr();
+        const _value = this.runPopNoOpr();
+        if(typeof _address == "number"&& (typeof _value == "number" || typeof _value== "string")) this.HeepMem[_address] = _value;
+    }
+
+    private runThld(){
+        const this_address = this.dymem[this.fp-1];
+        if(typeof this_address == "number"){
+            const _this = this.dymem[this_address];
+            this.runPush(_this);
+        }
+
     }
 
     private runNew(capacity:number){
@@ -318,23 +340,25 @@ export class VM{
     }
 
     private runCall(code:InterOpr){
+        console.log("WHEN CALL:",this.stack)
+        this.runPop();
 
         this.dymem[++this.dp] = this.fp;
         this.fp = this.dp;
         
         this.dymem[++this.dp] = this.pc;
         this.dymem[++this.dp] = this.bp;
-
         this.bp = this.dp;
 
-        if(typeof code.Opr1 === 'number') this.pc = code.Opr1;;
+        if(typeof code.Opr1 === 'number') this.pc = code.Opr1;
+        console.log(this.dymem)
     }
 
     private runRet(code:InterOpr){
         const result = this.runPopNoOpr();
         this.bp = Number(this.dymem[this.fp+2]);
         this.pc = Number(this.dymem[this.fp+1]);
-        this.dp = this.fp - code.NumParams - 1;
+        this.dp = this.fp - code.NumParams - 2;
 
         this.fp = Number(this.dymem[this.fp]);
         if(this.pc != -1){

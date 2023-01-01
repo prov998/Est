@@ -7,6 +7,7 @@ export enum IdentKind{
     CONST = "CONST",
     PARAM = "PARAM",
     CLASS = "CLASS",
+    PROPERTY = "PROPERTY",
 }
 
 export class IdentFactor{
