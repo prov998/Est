@@ -19,6 +19,8 @@ export class Token{
 
 export function keyWord(name:string){
     switch(name){
+        case "Init":
+            return TokenType.INIT
         case "this":
             return TokenType.THIS
         case "func":

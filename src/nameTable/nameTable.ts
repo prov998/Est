@@ -23,9 +23,17 @@ export class NameTable{
         this.display = [];
     }
 
+    public RegisterInit(index:number,in_class_number:number|null = null,className:string = ""){
+        this.curFunctionAddress = this.table.length;
+        this.table.push(new IdentFactor("Init",null,IdentKind.INIT,1,this.level++,index,Modifier.PUB,in_class_number,className));
+        this.display.push({address:this.table.length,localAddress:this.localAddress});
+        this.localAddress = 1;
+        return this.curFunctionAddress;
+    }
+
     public RegisterClass(name:string,index:number){
         this.curClassAddress = this.table.length;
-        this.table.push(new IdentFactor(name,null,IdentKind.CLASS,1,this.level++,index,0,Modifier.PUB));
+        this.table.push(new IdentFactor(name,null,IdentKind.CLASS,-1,this.level++,index,Modifier.PUB));
         this.display.push({address:this.table.length,localAddress:this.localAddress});
         this.localAddress = 1;
         return this.curClassAddress;
@@ -40,16 +48,41 @@ export class NameTable{
     }
 
     public RegisterProperty(name:string,type:Types|null,size:number,in_class_number:null|number = null,modifier:Modifier,class_name:string){
-        this.table.push(new IdentFactor(name,type,IdentKind.PROPERTY,size,this.level,this.localAddress,null,modifier,in_class_number,class_name));
+        this.table.push(new IdentFactor(name,type,IdentKind.PROPERTY,size,this.level,this.localAddress,modifier,in_class_number,class_name));
         this.localAddress += size
     }
 
     public RegisterFunction(name:string,index:number,in_class_number:number|null = null,className:string = "",modifier:Modifier){
         this.curFunctionAddress = this.table.length;
-        this.table.push(new IdentFactor(name,null,IdentKind.FUNC,1,this.level++,index,0,modifier,in_class_number,className));
+        this.table.push(new IdentFactor(name,null,IdentKind.FUNC,1,this.level++,index,modifier,in_class_number,className));
         this.display.push({address:this.table.length,localAddress:this.localAddress});
         this.localAddress = 1;
         return this.curFunctionAddress;
+    }
+
+    public BackPatchInit(index:number,name:string){
+        let length = this.table.length;
+        if(length == 0) throw new Error("")
+
+        for(let i = length-1;i >=0;i--){
+            if(this.table[i].Name == name && this.table[i].IdentKind == IdentKind.CLASS){
+                this.table[i].SetSize = index;
+                return;
+            }
+        }
+
+        throw new Error(`Name Error!! The Identifier '${name}' was not found.`);
+    }
+
+    public HasInit(class_name:string){
+        let length = this.table.length;
+        if(length == 0) throw new Error("")
+
+        for(let i = length-1;i >=0;i--){
+            if(this.table[i].Name == class_name && this.table[i].IdentKind == IdentKind.CLASS && this.table[i].Size != 1){
+                return this.table[i+this.table[i].Size];
+            }
+        }
     }
 
     public FunctionTypeBackPatch(type:Types){
@@ -58,17 +91,29 @@ export class NameTable{
 
     public AddFunctionParameter(name:string,type:Types){
         const address = this.table.length;
-        this.table.push(new IdentFactor(name,type,IdentKind.PARAM,1,this.level,0,null,Modifier.PUB));
-        this.table[this.curFunctionAddress].incNumParams();
+        this.table.push(new IdentFactor(name,type,IdentKind.PARAM,1,this.level,0,Modifier.PUB));
+        this.table[this.curFunctionAddress].incParams(type);
         return address;
     }
 
+    public ExistMember(member_name:string,class_name:string):IdentFactor{
+        let length = this.table.length;
+        if(length == 0) throw new Error("")
+
+        for(let i = length-1;i >=0;i--){
+            if(this.table[i].Name == member_name && this.table[i].ClassName == class_name) return this.table[i];
+        }
+
+        throw new Error(`Name Error!! The Identifier '${member_name}' was not found.`);
+    }
+
     public EndFunctionParams(){
-        const numParams = this.table[this.curFunctionAddress].NumParams;
+        const numParams = this.table[this.curFunctionAddress].Params?.length;
         if(numParams == null) throw new Error("END FUNC PARAMS ERROR")
 
+        console.log(numParams)
         for(let i =1;i<=numParams;i++){
-            this.table[this.curFunctionAddress+i].SetRelAddress = i -numParams - 3
+            this.table[this.curFunctionAddress+i].SetRelAddress = i -numParams - 4
         }
         return numParams
     }
@@ -115,12 +160,12 @@ export class NameTable{
     }
 
     public RegisterVar(name:string,type:Types|null,size:number,in_class_number:null|number = null,modifier:Modifier,class_name:string){
-        this.table.push(new IdentFactor(name,type,IdentKind.VAR,size,this.level,this.localAddress,null,modifier,in_class_number,class_name));
+        this.table.push(new IdentFactor(name,type,IdentKind.VAR,size,this.level,this.localAddress,modifier,in_class_number,class_name));
         this.localAddress += size
     }
 
     public RegisterConst(name:string,type:Types|null,size:number,in_class_number:null|number = null){
-        this.table.push(new IdentFactor(name,type,IdentKind.CONST,size,this.level,this.localAddress,null,Modifier.PUB,in_class_number));
+        this.table.push(new IdentFactor(name,type,IdentKind.CONST,size,this.level,this.localAddress,Modifier.PUB,in_class_number));
         this.localAddress += size
     }
 
@@ -172,9 +217,9 @@ export class NameTable{
     }
 
     //nameが存在するか　存在したらその識別子を返す
-    public Exist(name:string){
+    public Exist(name:string):IdentFactor{
         let length = this.table.length;
-        if(length == 0) return;
+        if(length == 0) throw new Error("Length is 0")
 
         for(let i = length-1;i >=0;i--){
             if(this.table[i].Name == name) return this.table[i];

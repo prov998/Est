@@ -159,20 +159,21 @@ export class VM{
                     console.log(code)
                     throw new Error("不明な指示です");
             }
+
             if(this.pc >= this.codes.length) break;
             if(this.pc == 0) break;
         }
     }
 
     private runHeas(){
-        console.log(this.stack)
         const _address = this.runPopNoOpr();
         const _value = this.runPopNoOpr();
         if(typeof _address == "number"&& (typeof _value == "number" || typeof _value== "string")) this.HeepMem[_address] = _value;
     }
 
     private runThld(){
-        const this_address = this.dymem[this.fp-1];
+        console.log(this.dymem)
+        const this_address = this.dymem[this.fp+1];
         if(typeof this_address == "number"){
             const _this = this.dymem[this_address];
             this.runPush(_this);
@@ -267,6 +268,7 @@ export class VM{
         }
 
         this.runPush(new_bp+address);
+        console.log(this.stack)
     }
 
     private runLdst(){
@@ -340,25 +342,23 @@ export class VM{
     }
 
     private runCall(code:InterOpr){
-        console.log("WHEN CALL:",this.stack)
-        this.runPop();
 
         this.dymem[++this.dp] = this.fp;
         this.fp = this.dp;
+        this.runPop();
         
         this.dymem[++this.dp] = this.pc;
         this.dymem[++this.dp] = this.bp;
         this.bp = this.dp;
 
         if(typeof code.Opr1 === 'number') this.pc = code.Opr1;
-        console.log(this.dymem)
     }
 
     private runRet(code:InterOpr){
         const result = this.runPopNoOpr();
-        this.bp = Number(this.dymem[this.fp+2]);
-        this.pc = Number(this.dymem[this.fp+1]);
-        this.dp = this.fp - code.NumParams - 2;
+        this.bp = Number(this.dymem[this.fp+3]);
+        this.pc = Number(this.dymem[this.fp+2]);
+        this.dp = this.fp - code.NumParams - 1;
 
         this.fp = Number(this.dymem[this.fp]);
         if(this.pc != -1){
@@ -369,6 +369,7 @@ export class VM{
         }
 
         if(typeof result == "number")this.runPush(result);
+
     }
 
     private runAdd(){
@@ -436,7 +437,6 @@ export class VM{
 
         const value = rs == ls?1:0;
         this.runPush(value)
-        console.log("ls:",ls,"rs:",rs);
     }
 
     private runNeq(){

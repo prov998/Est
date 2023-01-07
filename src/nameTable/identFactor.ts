@@ -8,6 +8,7 @@ export enum IdentKind{
     PARAM = "PARAM",
     CLASS = "CLASS",
     PROPERTY = "PROPERTY",
+    INIT = "INIT",
 }
 
 export class IdentFactor{
@@ -17,19 +18,18 @@ export class IdentFactor{
     private size:number
     private level:number;
     private relAddress:number;
-    private numParams:number|null;
+    private params:Types[] = [];
     private modifier:Modifier = Modifier.PUB;
     private in_class_number:number|null = null;
     private className:string = "";
 
-    constructor(name:string,type:Types|null,identKind:IdentKind,size:number,level:number,relAddress:number,numParams:number|null,modifier:Modifier,in_class_number:number|null = null,className:string = ""){
+    constructor(name:string,type:Types|null,identKind:IdentKind,size:number,level:number,relAddress:number,modifier:Modifier,in_class_number:number|null = null,className:string = ""){
         this.name = name;
         this.type = type; //type ->intなどの型注釈
         this.identKind = identKind //identKind ->識別子のパターン
         this.size = size;
         this.level = level;
         this.relAddress = relAddress;
-        this.numParams = numParams; //関数の場合に使用
         this.modifier = modifier;
         this.in_class_number = in_class_number;
         this.className = className;
@@ -41,15 +41,16 @@ export class IdentFactor{
     public get Size():number{return this.size;}
     public get Level():number{return this.level;}
     public get RelAddress():number {return this.relAddress;}
-    public get NumParams():number|null {return this.numParams;}
+    public get Params():Types[] {return this.params;}
     public get Modifier():Modifier{return this.modifier;}
     public get InClassNumber():null|number{return this.in_class_number;}
     public get ClassName():string{return this.className;}
 
-    public incNumParams(){
-        if(this.numParams == null) throw new Error("ERROR");
-        this.numParams++;
+    public incParams(type:Types){
+        if(this.params == null) throw new Error("ERROR");
+        this.params.push(type);
     }
+
 
     public set SetRelAddress(v : number) {
         this.relAddress = v;

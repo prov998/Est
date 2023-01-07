@@ -7,21 +7,23 @@ import { VM } from "../virtualMachine/vm";
 export let run = ()=>{
     let input = `
 
-        class Stdout>>
+        class A>>
             prv x:int;
 
-            prv func Print(a:int)>>
-                this.x = a;
+            pub Init(p:int)>>
+                this.x = p;
             end
 
+            pub func Set(y:int)>>
+                this.x = y;
+            end
         end
 
-        func main()>>
-            var std:Stdout = new Stdout();
-            var sss:Stdout = new Stdout();
 
-            sss.Print(30);
-            std.Print();
+        func main>>
+            var a:A = new A(4);
+            a.Set(100);
+
         end
 
     `

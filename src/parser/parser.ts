@@ -4,7 +4,7 @@ import { Token } from "../token/token";
 import { TokenType } from "../token/tokenType";
 import {IdentFactor, IdentKind} from "../nameTable/identFactor"
 import { CastWithOpr, Types } from "../type/type";
-import { ClassNames } from "../../className/classNames";
+import { ClassNames } from "../className/classNames";
 import { Modifier } from "../type/modifier_type";
 
 export class Parser{
@@ -19,6 +19,7 @@ export class Parser{
     private loop_break_index:number[] = [];
     private wasMainDecled:boolean = false;
     private CL:ClassNames;
+    private ThisClassName:string = "";
 
     constructor(tokens:Token[]){
         this._tokens = tokens;
@@ -67,6 +68,7 @@ export class Parser{
             if(this.CurToken().Type == TokenType.EOF) break;
         }
         if(!this.wasMainDecled) this.genCode.BackPatch1(0,this.genCode.getIndex());
+        console.log(this.table.Table)
     }
 
     private ParseBlock(){
@@ -97,6 +99,7 @@ export class Parser{
         this.table.RegisterClass(name,this.genCode.getIndex());
         this.level++;
         this.CL.AddClassName(name);
+        this.ThisClassName = name;
 
         while(true){
             switch(this.CurToken().Type){
@@ -107,10 +110,17 @@ export class Parser{
                     this.Next();
                     accessibility = Modifier.PRV
                     continue;
+                case TokenType.INIT:
+                    const init_address = this.ParseInit(name,++in_class_number);
+                    console.log(this.table.Table)
+                    this.table.BackPatchInit(init_address,name);
+                    break;
                 case TokenType.IDENT:
+                    console.log(in_class_number,"!")
                     this.ParsePropertyDecl(++in_class_number,name,accessibility);
                     break;
                 case TokenType.FUNC:
+                    console.log(in_class_number,"!")
                     this.ParseFuncDecl(++in_class_number,name,accessibility)
                     break;
                 default:
@@ -123,6 +133,68 @@ export class Parser{
         this.level--;
         this.table.ClassOwnMemberBackPatch(name,in_class_number);
         this.table.EndClass();
+        this.ThisClassName = "";
+    }
+
+    private ParseInit(class_name:string,in_class_number:number){
+        let func_return_type;
+        let numParams;
+        this.Next();
+        if(this.CurToken().Type == TokenType.LPAREN) this.Next();
+        const init_address = this.table.RegisterInit(this.genCode.getIndex(),in_class_number,class_name)
+
+        this.genCode.EmitLabel("Init");
+        this.level++;
+        while(true){
+            if(this.CurToken().Type == TokenType.IDENT){
+                const param_name = this.CurToken().Name;
+                this.Next();
+                if(this.CurToken().Type != TokenType.COLON) this.PutError(TokenType.COLON);
+                this.Next();
+                const type = this.ParseType();
+                this.Next();
+                this.table.AddFunctionParameter(param_name,type);
+                if(this.CurToken().Type == TokenType.COMMA){
+                    this.Next();
+                    continue;
+                }
+            }
+        
+            if(this.CurToken().Type == TokenType.RPAREN) this.Next();
+            if(this.CurToken().Type == TokenType.LEADER){
+                this.Next();
+                try{
+                    func_return_type = this.ParseType();
+                    this.Next();
+                }catch{
+                    func_return_type = Types.VOID;
+                }
+                if(func_return_type != Types.VOID) throw new Error("Constructor outs only void.");
+                break;
+            }
+            this.PutError(TokenType.LEADER);
+            break;
+        }
+
+        numParams = this.table.EndFunctionParams();
+        while(true){
+            this.ParseBlock();
+            if(this.CurToken().Type == TokenType.RET){
+                throw new Error("Constructor does not have return.");
+            }
+            if(this.CurToken().Type == TokenType.END){
+                this.Next();
+                break;
+            }
+            this.Next();
+        }
+
+        this.table.EndFunction();
+        this.genCode.EmitPush(0);
+        this.genCode.EmitReturn(numParams,this.table.Level,numParams);
+        this.level--;
+        
+        return init_address
     }
 
     private ParsePropertyDecl(in_class_number:number,class_name:string,modifier:Modifier){
@@ -257,7 +329,6 @@ export class Parser{
                     }
                 }
             }
-            console.log(this.table.Table)
             if(this.CurToken().Type != TokenType.SEMICOLON) this.PutError(TokenType.SEMICOLON);
             this.Next();
             break;
@@ -750,7 +821,6 @@ export class Parser{
                 }
             }
 
-            console.log("heap_size",heap_size)
             if(in_class_number != null) this.table.RegisterVar(name,type,var_size,in_class_number,modifier,class_name);
             else this.table.RegisterVar(name,type,var_size,heap_size,modifier,class_name);
 
@@ -822,10 +892,32 @@ export class Parser{
                     this.table.classNameBackPatch(new_factor_in_table.Name,class_name);
                     this.CheckToken(TokenType.LPAREN);
 
-                    while(true){
-                        if(this.CurToken().Type == TokenType.RPAREN) break;
-                        this.Next();
+                    this.genCode.EmitPushi(0,new_factor_in_table.RelAddress)
+
+                    this.Next();
+                    const initer = this.table.HasInit(class_name);
+                    let num_args = 0;
+                    if(initer != undefined&&initer?.Params.length > 0){
+                        const preEmitIndex = this.genCode.getIndex();
+
+                        while(true){
+                            const type = this.ParseExpression();
+                            if(this.genCode.getIndex() != preEmitIndex) this.genCode.EmitPop();
+
+                            const arg_type = initer.Params[num_args];
+                            if(arg_type != type) throw new Error("Type Error!");
+                            num_args++;
+                            if(this.CurToken().Type == TokenType.COMMA){
+                                this.Next();
+                                continue;
+                            }
+                            break;
+                        }
+                        if(initer.Params.length != num_args) throw new Error(`引数の数が違います  関数の引数${initer.Params.length} 宣言された引数${num_args}`);
+                        this.genCode.EmitCall(initer.RelAddress);
                     }
+
+                    if(this.CurToken().Type == TokenType.RPAREN) break;
 
                     this.Next();
                 }else{
@@ -843,7 +935,6 @@ export class Parser{
                     }
                 }
             }
-            console.log(this.table.Table)
             if(this.CurToken().Type != TokenType.SEMICOLON) this.PutError(TokenType.SEMICOLON);
             this.Next();
             break;
@@ -1055,6 +1146,30 @@ export class Parser{
                 this.Next();
                 this.genCode.EmitFalse();
                 return Types.BOOL;
+            case TokenType.THIS:
+                this.CheckToken(TokenType.DOT);
+                this.Next();
+
+                const this_ident = this.table.Exist(this.ThisClassName)
+                const member = this.table.ExistMember(this.CurToken().Name,this_ident.Name);
+                const member_type = member.Type;
+                if(member_type == null) throw new Error("")
+                this.Next();
+
+                if(member.IdentKind == IdentKind.FUNC){
+                    const index = member.RelAddress;
+                    this.genCode.EmitLoad(this.level - member.Level-1,-2);
+                    this.ParseFuncCall(index,this_ident,true);
+                    return member_type;
+                }
+
+                this.genCode.EmitThld();
+                this.genCode.EmitPush(member.RelAddress);
+                this.genCode.EmitAdd();
+                this.genCode.EmiHeld();
+
+                return member_type;
+
             case TokenType.IDENT:
                 const name = this.CurToken().Name;
                 this.Next();
@@ -1098,16 +1213,42 @@ export class Parser{
                     return factor_type;
                 }
 
+
                 switch(_ident_in_table?.IdentKind){
                     case IdentKind.PARAM:
                         this.ParseFuncParams(_ident_in_table);
                         return _ident_in_table.Type;
                     case IdentKind.FUNC:
                         const index = _ident_in_table.RelAddress;
-                        this.ParseFuncCall(index);
+                        this.ParseFuncCall(index,_ident_in_table);
                         return _ident_in_table.Type
                     case IdentKind.VAR:
                     case IdentKind.CONST:
+                        if(_ident_in_table.Type == Types.CLASS){
+                            if(this.CurToken().Type != TokenType.DOT) this.PutError(TokenType.DOT);
+                            this.Next();
+
+                            const member_name = this.CurToken().Name;
+                            const member = this.table.Exist(member_name);
+
+                            this.Next();
+                            if(member == undefined) throw new Error("Ident is unknown");
+
+                            if(member.ClassName != _ident_in_table.ClassName) throw new Error("ERROR!");
+                            if(member.Modifier == Modifier.PRV) throw new Error("Private member cannot access!")
+
+                            switch(member.IdentKind){
+                                case IdentKind.PROPERTY:
+                                    if(member.Type == undefined)throw new Error("");
+
+                                    this.genCode.EmitLoad(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
+                                    this.genCode.EmitPush(member.RelAddress);
+                                    this.genCode.EmitAdd();
+                                    this.genCode.EmiHeld();
+                                    return member.Type;
+                            }
+                        }
+                        
                         this.genCode.EmitLoad(this.level-_ident_in_table.Level,_ident_in_table.RelAddress);
                         return _ident_in_table.Type;
                     default:
@@ -1148,7 +1289,8 @@ export class Parser{
     }
 
     private ParseLeftThis(){
-        const obj = this.table.FirstIdent();
+        const obj = this.table.Exist(this.ThisClassName);
+
         this.ClassCall(obj,true);
     }
 
@@ -1177,9 +1319,11 @@ export class Parser{
 
         switch(_ident_in_table?.IdentKind){
             case IdentKind.FUNC:
-                if(_ident_in_table.ClassName != '') throw new Error("this identifier is not object that has this method.");
+                console.log(_ident_in_table)
+                if(_ident_in_table.ClassName != '') throw new Error(`${_ident_in_table.Name} is not object that has this method.`);
                 const _index = _ident_in_table.RelAddress
-                this.ParseFuncCall(_index);
+                this.ParseFuncCall(_index,_ident_in_table);
+                
                 break;
             case IdentKind.PARAM:
                 this.Next();
@@ -1358,22 +1502,28 @@ export class Parser{
 
     private ClassCall(obj:IdentFactor,isThis:boolean = false){
         if(this.CurToken().Type != TokenType.DOT) this.PutError(TokenType.DOT) 
-        
+        var ident:IdentFactor;
         this.Next();
         const member_name = this.CurToken().Name;
 
-        const ident = this.table.Exist(member_name);
-        if(ident == null) throw new Error("");
+        if(isThis) ident = this.table.ExistMember(member_name,obj.Name);
+        else ident = this.table.ExistMember(member_name,obj.ClassName);
+
+        if(ident.Modifier == Modifier.PRV && !isThis) throw new Error("Private member cannot access!")
         if(ident.IdentKind == IdentKind.FUNC){
-            if(ident.ClassName != this.CL.ReturnClassNameOfObject(obj.Name) && !isThis) throw new Error("The method is not in class!")
+            if((ident.ClassName != obj.Name && isThis)||
+            (ident.ClassName != this.CL.ReturnClassNameOfObject(obj.Name) && !isThis)) throw new Error("The method is not in class!")
             const index = ident.RelAddress;
-    
+            if(isThis){
+                this.genCode.EmitLoad(this.level - ident.Level - 1,-2);
+            }
             this.Next();
-            this.ParseFuncCall(index,true);
+            this.ParseFuncCall(index,ident,true);
         }else if(ident.IdentKind == IdentKind.PROPERTY){
             var pro_size= 1;
             var SizeWasDecled = false;
-            if(ident.ClassName != this.CL.ReturnClassNameOfObject(obj.Name) && !isThis) throw new Error("The property is not in class!")
+            if((ident.ClassName != obj.Name && isThis)||
+            (ident.ClassName != this.CL.ReturnClassNameOfObject(obj.Name) && !isThis)) throw new Error("The method is not in class!")
             this.Next();
 
             if(this.CurToken().Type == TokenType.ASSIGN){
@@ -1396,8 +1546,9 @@ export class Parser{
 
                         if(factor_type == null) factor_type = type;
                         if(factor_type != type) throw new Error("Type Error!");
-
-                        this.genCode.EmitLoad(this.level-obj.Level,obj.RelAddress);
+                        if(isThis){
+                            this.genCode.EmitThld();
+                        }else this.genCode.EmitLoad(this.level-obj.Level,obj.RelAddress);
                         this.genCode.EmitPush(new_factor_in_table.RelAddress);
                         this.genCode.EmitAdd();
                         this.genCode.EmitPush(number_counted);
@@ -1438,7 +1589,9 @@ export class Parser{
                     }else{
                         this.table.CheckIdentType(new_factor_in_table.Name,type);
                     }
-                    this.genCode.EmitThld();
+                    if(isThis){
+                        this.genCode.EmitThld();
+                    }else this.genCode.EmitLoad(this.level-obj.Level,obj.RelAddress);
                     this.genCode.EmitPush(new_factor_in_table.RelAddress);
                     this.genCode.EmitAdd();
 
@@ -1454,29 +1607,36 @@ export class Parser{
         this.genCode.EmitLoad(this.level-param.Level,param.RelAddress);
     }
 
-    private ParseFuncCall(index:number,isMethod:boolean =false){
+    private ParseFuncCall(index:number,func_ident:IdentFactor,isMethod:boolean =false){
+        let num_args = 0;
         if(this.CurToken().Type != TokenType.LPAREN) this.PutError(TokenType.LPAREN);
         this.Next();
+        if(!isMethod) this.genCode.EmitPush(-1);
         const preEmitIndex = this.genCode.getIndex();
         if(this.CurToken().Type == TokenType.RPAREN){
 
         }else while(true){
-            this.ParseExpression();
+            const type = this.ParseExpression();
             if(this.genCode.getIndex() != preEmitIndex) this.genCode.EmitPop();
+
+            const arg_type = func_ident.Params[num_args];
+            if(arg_type != type) throw new Error("Type Error!");
+            num_args++;
             if(this.CurToken().Type == TokenType.COMMA){
                 this.Next();
                 continue;
             }
             break;
         }
+        if(func_ident.Params.length != num_args) throw new Error(`引数の数が違います  関数の引数${func_ident.Params.length} 宣言された引数${num_args}`);
         if(this.CurToken().Type != TokenType.RPAREN) this.PutError(TokenType.RPAREN);
         this.Next();
-        if(!isMethod) this.genCode.EmitPush(-1);
         this.genCode.EmitCall(index);
+
+        return num_args;
     }
 
     private ParseFuncDecl(in_class_number:number|null = null,className:string = "",modifier:Modifier){
-
         let wasReturned:boolean = false;
         let func_return_type;
 
@@ -1524,6 +1684,7 @@ export class Parser{
         }
 
         numParams = this.table.EndFunctionParams();
+        console.log(this.table.Table)
         while(true){
             this.ParseBlock();
             if(this.CurToken().Type == TokenType.RET){
@@ -1543,6 +1704,7 @@ export class Parser{
         if(func_return_type != Types.VOID && !wasReturned) throw new Error("returnが必要です");
 
         this.table.EndFunction();
+        this.genCode.EmitPush(0);
         this.genCode.EmitReturn(numParams,this.table.Level,numParams);
         this.level--;
 
